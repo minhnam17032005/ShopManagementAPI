@@ -11,17 +11,23 @@ namespace Demo_Course_Management.Services
 {
     public class RoleService
     {
-        private readonly RoleRepository _repo;
+        private readonly RoleRepository _repoRole;
+        private readonly RolePermissionRepository _repoRolePermission;
+        private readonly PermissionRepository _repoPermission;
 
-        public RoleService(RoleRepository repo)
+
+
+        public RoleService(RoleRepository repoRole, RolePermissionRepository repoRolePermission, PermissionRepository repoPermission)
         {
-            _repo = repo;
+            _repoRole = repoRole;
+            _repoRolePermission = repoRolePermission;
+            _repoPermission = repoPermission;
         }
 
         // ================= GET ALL =================
         public async Task<List<RoleResponseDTO>> GetAllAsync()
         {
-            var roles = await _repo.GetAllWithPermissionsAsync();
+            var roles = await _repoRole.GetAllWithPermissionsAsync();
 
             return roles.Select(MapToDTO).ToList();
         }
@@ -29,7 +35,7 @@ namespace Demo_Course_Management.Services
         // ================= GET BY ID =================
         public async Task<RoleResponseDTO> GetByIdAsync(int id)
         {
-            var role = await _repo.GetByIdWithPermissionsAsync(id)
+            var role = await _repoRole.GetByIdWithPermissionsAsync(id)
                 ?? throw new NotFoundException("Role not found");
 
             return MapToDTO(role);
@@ -40,18 +46,18 @@ namespace Demo_Course_Management.Services
         {
             ValidateInput(permissionIds);
 
-            var role = await _repo.FindByIdAsync(roleId)
+            var role = await _repoRole.FindByIdAsync(roleId)
                 ?? throw new NotFoundException("Role not found");
 
             ValidateRole(role);
 
             // lọc permission hợp lệ trong DB
-            var validIds = await _repo.GetValidPermissionIdsAsync(permissionIds);
+            var validIds = await _repoPermission.GetValidPermissionIdsAsync(permissionIds);
             if (!validIds.Any())
                 throw new NotFoundException("No valid permissions found");
 
             // lấy permission đã tồn tại trong role
-            var existingIds = await _repo.GetExistingPermissionIdsAsync(roleId, validIds);
+            var existingIds = await _repoPermission.GetExistingPermissionIdsAsync(roleId, validIds);
 
             // chỉ lấy permission mới chưa có
             var toAdd = validIds.Except(existingIds).ToList();
@@ -60,7 +66,7 @@ namespace Demo_Course_Management.Services
                 throw new BadRequestException("No new permissions to add");
 
             // map sang entity để insert bảng many-to-many
-            _repo.AddRolePermissions(
+            _repoRolePermission.AddRolePermissions(
                 toAdd.Select(id => new RolePermission
                 {
                     RoleId = roleId,
@@ -68,7 +74,7 @@ namespace Demo_Course_Management.Services
                 }).ToList()
             );
 
-            await _repo.SaveChangesAsync();
+            await _repoRole.SaveChangesAsync();
             return new RolePermissionResponseDTO
             {
                 ProcessedIds = toAdd
@@ -80,22 +86,22 @@ namespace Demo_Course_Management.Services
         {
             ValidateInput(permissionIds);
 
-            var role = await _repo.FindByIdAsync(roleId)
+            var role = await _repoRole.FindByIdAsync(roleId)
                 ?? throw new NotFoundException("Role not found");
 
             ValidateRole(role);
 
             // Lấy các bản ghi RolePermission đang tồn tại trong DB
             // (chỉ những cái vừa thuộc roleId + nằm trong danh sách cần xóa)
-            var entities = await _repo.GetRolePermissionsAsync(roleId, permissionIds);
+            var entities = await _repoRolePermission.GetRolePermissionsAsync(roleId, permissionIds);
 
             // Nếu không có bản ghi nào khớp → không có gì để xóa
             if (!entities.Any())
                 throw new BadRequestException("None of the provided permissions exist in this role");
 
             // Xóa các mapping RolePermission khỏi bảng many-to-many
-            _repo.RemoveRolePermissions(entities);
-            await _repo.SaveChangesAsync();
+            _repoRolePermission.RemoveRolePermissions(entities);
+            await _repoRole.SaveChangesAsync();
 
             return new RolePermissionResponseDTO
             {

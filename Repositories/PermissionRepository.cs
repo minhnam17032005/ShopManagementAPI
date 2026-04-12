@@ -25,5 +25,23 @@ namespace Demo_Course_Management.Repositories
             return await _context.Permissions
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
+
+        // Lấy danh sách permission hợp lệ (tồn tại trong DB)
+        public async Task<List<int>> GetValidPermissionIdsAsync(List<int> permissionIds)
+        {
+            return await _context.Permissions
+                .Where(p => permissionIds.Contains(p.Id))
+                .Select(p => p.Id)
+                .ToListAsync();
+        }
+        // Lấy danh sách permission đã tồn tại trong role
+        public async Task<List<int>> GetExistingPermissionIdsAsync(int roleId, List<int> permissionIds)
+        {
+            return await _context.RolePermissions
+                .Where(rp => rp.RoleId == roleId && permissionIds.Contains(rp.PermissionId))
+                .Select(rp => rp.PermissionId)
+                .ToListAsync();
+        }
+
     }
 }

@@ -12,8 +12,6 @@ namespace Demo_Course_Management.Repositories
         {
             _context = context;
         }
-
-        // ================= ROLE =================
         public async Task<List<Role>> GetAllWithPermissionsAsync()
         {
             return await _context.Roles
@@ -33,43 +31,6 @@ namespace Demo_Course_Management.Repositories
         public async Task<Role?> FindByIdAsync(int id)
         {
             return await _context.Roles.FindAsync(id);
-        }
-
-        // ================= PERMISSION =================
-        // Lấy danh sách permission hợp lệ (tồn tại trong DB)
-        public async Task<List<int>> GetValidPermissionIdsAsync(List<int> permissionIds)
-        {
-            return await _context.Permissions
-                .Where(p => permissionIds.Contains(p.Id))
-                .Select(p => p.Id)
-                .ToListAsync();
-        }
-        // Lấy danh sách permission đã tồn tại trong role
-        public async Task<List<int>> GetExistingPermissionIdsAsync(int roleId, List<int> permissionIds)
-        {
-            return await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && permissionIds.Contains(rp.PermissionId))
-                .Select(rp => rp.PermissionId)
-                .ToListAsync();
-        }
-        // Lấy các RolePermission entity để xóa
-        public async Task<List<RolePermission>> GetRolePermissionsAsync(int roleId, List<int> permissionIds)
-        {
-            return await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId && permissionIds.Contains(rp.PermissionId))
-                .ToListAsync();
-        }
-
-        // ================= WRITE =================
-
-        public void AddRolePermissions(List<RolePermission> entities)
-        {
-            _context.RolePermissions.AddRange(entities);
-        }
-
-        public void RemoveRolePermissions(List<RolePermission> entities)
-        {
-            _context.RolePermissions.RemoveRange(entities);
         }
 
         public async Task SaveChangesAsync()
