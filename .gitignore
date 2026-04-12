@@ -1,0 +1,56 @@
+﻿# =========================
+# Visual Studio
+# =========================
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# =========================
+# Build results
+# =========================
+bin/
+obj/
+
+# =========================
+# .NET Core
+# =========================
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE khác (VSCode / Rider)
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Publish / Output
+# =========================
+publish/
+wwwroot/dist/
+
+# =========================
+# Secrets (QUAN TRỌNG)
+# =========================
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.json
+
+# EXCEPT (cho phép push file mẫu)
+!appsettings.json
+!appsettings.example.json
+!appsettings.Development.example.json
