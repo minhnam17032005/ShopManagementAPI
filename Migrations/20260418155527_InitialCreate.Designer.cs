@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Demo_Course_Management.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260407163946_InitialCreate")]
+    [Migration("20260418155527_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -39,6 +39,9 @@ namespace Demo_Course_Management.Migrations
                     b.Property<string>("Description")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -142,7 +145,7 @@ namespace Demo_Course_Management.Migrations
 
                     b.Property<string>("Method")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Module")
                         .IsRequired()
@@ -158,6 +161,9 @@ namespace Demo_Course_Management.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApiPath", "Method", "Module")
+                        .IsUnique();
 
                     b.ToTable("Permissions");
                 });
@@ -175,6 +181,9 @@ namespace Demo_Course_Management.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -226,40 +235,15 @@ namespace Demo_Course_Management.Migrations
 
             modelBuilder.Entity("Demo_Course_Management.Models.RolePermission", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<int>("RoleId")
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<int>("PermissionId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("PermissionId1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RoleId1")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
+                    b.HasKey("RoleId", "PermissionId");
 
                     b.HasIndex("PermissionId");
-
-                    b.HasIndex("PermissionId1");
-
-                    b.HasIndex("RoleId1");
-
-                    b.HasIndex("RoleId", "PermissionId")
-                        .IsUnique();
 
                     b.ToTable("RolePermissions");
                 });
@@ -285,14 +269,14 @@ namespace Demo_Course_Management.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RoleId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -307,15 +291,13 @@ namespace Demo_Course_Management.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("RoleId1");
-
                     b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Demo_Course_Management.Models.Order", b =>
                 {
                     b.HasOne("Demo_Course_Management.Models.User", "User")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -332,7 +314,7 @@ namespace Demo_Course_Management.Migrations
                         .IsRequired();
 
                     b.HasOne("Demo_Course_Management.Models.Product", "Product")
-                        .WithMany()
+                        .WithMany("OrderItems")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -356,24 +338,16 @@ namespace Demo_Course_Management.Migrations
             modelBuilder.Entity("Demo_Course_Management.Models.RolePermission", b =>
                 {
                     b.HasOne("Demo_Course_Management.Models.Permission", "Permission")
-                        .WithMany()
+                        .WithMany("RolePermissions")
                         .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Demo_Course_Management.Models.Permission", null)
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId1");
-
                     b.HasOne("Demo_Course_Management.Models.Role", "Role")
-                        .WithMany()
+                        .WithMany("RolePermissions")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("Demo_Course_Management.Models.Role", null)
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("RoleId1");
 
                     b.Navigation("Permission");
 
@@ -383,14 +357,10 @@ namespace Demo_Course_Management.Migrations
             modelBuilder.Entity("Demo_Course_Management.Models.User", b =>
                 {
                     b.HasOne("Demo_Course_Management.Models.Role", "Role")
-                        .WithMany()
+                        .WithMany("Users")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("Demo_Course_Management.Models.Role", null)
-                        .WithMany("Users")
-                        .HasForeignKey("RoleId1");
 
                     b.Navigation("Role");
                 });
@@ -410,11 +380,21 @@ namespace Demo_Course_Management.Migrations
                     b.Navigation("RolePermissions");
                 });
 
+            modelBuilder.Entity("Demo_Course_Management.Models.Product", b =>
+                {
+                    b.Navigation("OrderItems");
+                });
+
             modelBuilder.Entity("Demo_Course_Management.Models.Role", b =>
                 {
                     b.Navigation("RolePermissions");
 
                     b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("Demo_Course_Management.Models.User", b =>
+                {
+                    b.Navigation("Orders");
                 });
 #pragma warning restore 612, 618
         }

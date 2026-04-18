@@ -10,21 +10,26 @@ namespace Demo_Course_Management.Services
 {
     public class ProductService
     {
-        private readonly ProductRepository _repo;
+        private readonly ProductRepository _repoProduct;
+        private readonly OrderItemRepository _repoOrderItem;
 
-        public ProductService(ProductRepository repo)
+        public ProductService(ProductRepository repoProduct, OrderItemRepository repoOrderItem)
         {
-            _repo = repo;
+            _repoProduct = repoProduct;
+            _repoOrderItem = repoOrderItem;
         }
 
         public async Task<ProductResponseDTO> CreateAsync(ProductRequestDTO dto)
         {
             // 1. check category tồn tại
-            var category = await _repo.GetCategoryByIdAsync(dto.CategoryId)
+            var category = await _repoProduct.GetCategoryByIdAsync(dto.CategoryId)
                 ?? throw new NotFoundException("Category not found");
 
+            if (!category.IsActive)
+                throw new BadRequestException("Category is inactive");
+
             // 2. check trùng product trong category
-            if (await _repo.ExistsInCategoryAsync(dto.Name, dto.CategoryId))
+            if (await _repoProduct.ExistsInCategoryAsync(dto.Name, dto.CategoryId))
                 throw new BadRequestException("Product already exists in this category");
 
             // 3. tạo product
@@ -36,44 +41,76 @@ namespace Demo_Course_Management.Services
                 CategoryId = dto.CategoryId
             };
 
-            await _repo.AddAsync(product);
-            await _repo.SaveChangesAsync();
+            await _repoProduct.AddAsync(product);
+            await _repoProduct.SaveAsync();
 
             return MapToDTO(product, category);
         }
 
-        public async Task<ProductResponseDTO> UpdateAsync(int id, ProductRequestDTO dto)
+        public async Task<ProductResponseDTO> UpdateAsync(
+    int id,
+    UpdateProductDTO dto)
         {
-            var product = await _repo.GetByIdAsync(id)
+            var product = await _repoProduct.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            var category = await _repo.GetCategoryByIdAsync(dto.CategoryId)
+            if (!product.IsActive)
+                throw new BadRequestException("Product is inactive");
+
+            var category = await _repoProduct.GetCategoryByIdAsync(dto.CategoryId)
                 ?? throw new NotFoundException("Category not found");
 
-            if (await _repo.ExistsInCategoryExcludeIdAsync(id, dto.Name, dto.CategoryId))
-                throw new BadRequestException("Product already exists in this category");
+            if (!category.IsActive)
+                throw new BadRequestException("Category is inactive");
+
+            if (await _repoProduct.ExistsInCategoryExcludeIdAsync(
+                id,
+                dto.Name,
+                dto.CategoryId))
+            {
+                throw new BadRequestException(
+                    "Product already exists in this category");
+            }
 
             product.Name = dto.Name;
             product.Price = dto.Price;
-            product.Stock = dto.Stock;
             product.CategoryId = dto.CategoryId;
             product.UpdatedAt = DateTime.UtcNow;
 
-            await _repo.SaveChangesAsync();
+            await _repoProduct.SaveAsync();
 
             return MapToDTO(product, category);
+        }
+
+        public async Task<ProductResponseDTO> UpdateStockAsync(int id,UpdateStockDTO dto)
+        {
+            var product = await _repoProduct.GetByIdWithCategoryAsync(id)
+                ?? throw new NotFoundException("Product not found");
+
+            if (!product.IsActive)
+                throw new BadRequestException("Product is inactive");
+
+            if (dto.Stock < 0)
+                throw new BadRequestException("Stock must be >= 0");
+
+            product.Stock = dto.Stock;
+            product.UpdatedAt = DateTime.Now;
+
+            await _repoProduct.SaveAsync();
+
+            return MapToDTO(product);
         }
 
         public async Task<List<ProductResponseDTO>> GetAllAsync()
         {
-            var products = await _repo.GetAllWithCategoryAsync();
+            var products = await _repoProduct.GetAllWithCategoryAsync();
 
             return products.Select(MapToDTO).ToList();
         }
 
         public async Task<ProductResponseDTO> GetByIdAsync(int id)
         {
-            var product = await _repo.GetByIdWithCategoryAsync(id)
+            var product = await _repoProduct.GetByIdWithCategoryAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
             return MapToDTO(product);
@@ -81,11 +118,50 @@ namespace Demo_Course_Management.Services
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var product = await _repo.GetByIdAsync(id)
+            var product = await _repoProduct.GetByIdAsync(id)
                 ?? throw new NotFoundException("Product not found");
 
-            _repo.Remove(product);
-            await _repo.SaveChangesAsync();
+            // đã ngừng hoạt động rồi
+            if (!product.IsActive)
+                throw new BadRequestException("Sản phẩm đã ngừng hoạt động.");
+
+            // đang nằm trong đơn pending thì không cho ẩn
+            var inPendingOrder = await _repoOrderItem.ExistsInPendingOrderAsync(id);
+
+            if (inPendingOrder)
+                throw new ConflictException(
+                    "Sản phẩm đang nằm trong đơn hàng chờ xử lý nên không thể ngừng hoạt động.");
+
+            // soft delete
+            product.IsActive = false;
+            product.UpdatedAt = DateTime.Now;
+
+            await _repoProduct.SaveAsync();
+
+            return true;
+        }
+
+        public async Task<bool> RestoreAsync(int id)
+        {
+            var product = await _repoProduct.GetByIdAsync(id)
+                ?? throw new NotFoundException("Product not found");
+
+            // đã active rồi
+            if (product.IsActive)
+                throw new BadRequestException("Sản phẩm đang hoạt động.");
+
+            // category bị khóa thì không restore được
+            var category = await _repoProduct.GetCategoryByIdAsync(product.CategoryId)
+                ?? throw new NotFoundException("Category not found");
+
+            if (!category.IsActive)
+                throw new ConflictException(
+                    "Danh mục đang ngừng hoạt động nên không thể khôi phục sản phẩm.");
+
+            product.IsActive = true;
+            product.UpdatedAt = DateTime.Now;
+
+            await _repoProduct.SaveAsync();
 
             return true;
         }
@@ -99,6 +175,7 @@ namespace Demo_Course_Management.Services
                 Name = p.Name,
                 Price = p.Price,
                 Stock = p.Stock,
+                IsActive = p.IsActive,
                 CategoryId = p.CategoryId,
                 //Lấy từ navigation property (p.Category)
                 //Cần Include(p => p.Category) nếu không sẽ bị null
@@ -117,6 +194,7 @@ namespace Demo_Course_Management.Services
                 Name = p.Name,
                 Price = p.Price,
                 Stock = p.Stock,
+                IsActive =p.IsActive,
                 CategoryId = p.CategoryId,
                 //Lấy trực tiếp từ parameter
                 CategoryName = c.Name,

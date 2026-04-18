@@ -11,6 +11,7 @@ namespace Demo_Course_Management.Data.Seeding
             await PermissionSeeder.SeedAsync(context);
             await RoleSeeder.SeedAsync(context);
             await RolePermissionSeeder.SeedAsync(context);
+            await UserSeeder.SeedAsync(context);
         }
     }
 }

@@ -18,6 +18,8 @@ namespace Demo_Course_Management.Models
         [Required]
         public int Stock { get; set; } // Số lượng tồn kho
 
+        public bool IsActive { get; set; } = true;
+
         [Required]
         public int CategoryId { get; set; } // FK → Category
 

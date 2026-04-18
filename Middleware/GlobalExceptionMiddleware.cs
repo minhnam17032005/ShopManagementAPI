@@ -29,33 +29,58 @@
             context.Response.ContentType = "application/json";
 
             int statusCode;
-            string message = ex.Message;
+            object response;
 
             switch (ex)
             {
-                case BadRequestException:
-                    statusCode = (int)HttpStatusCode.BadRequest; // 400
+                case BadRequestException badRequestEx:
+
+                    statusCode = StatusCodes.Status400BadRequest;
+
+                    response = new
+                    {
+                        status = statusCode,
+                        errors = badRequestEx.Errors ?? new List<string>
+                {
+                    badRequestEx.Message
+                }
+                    };
                     break;
 
                 case NotFoundException:
-                    statusCode = (int)HttpStatusCode.NotFound; // 404
+
+                    statusCode = StatusCodes.Status404NotFound;
+
+                    response = new
+                    {
+                        status = statusCode,
+                        message = ex.Message
+                    };
+                    break;
+                case ConflictException:
+
+                    statusCode = StatusCodes.Status409Conflict;
+
+                    response = new
+                    {
+                        status = statusCode,
+                        message = ex.Message
+                    };
                     break;
 
                 default:
-                    statusCode = (int)HttpStatusCode.InternalServerError; // 500
-                    message = "Internal server error"; // ẩn lỗi thật
+
+                    statusCode = StatusCodes.Status500InternalServerError;
+
+                    response = new
+                    {
+                        status = statusCode,
+                        message = "Lỗi hệ thống."
+                    };
                     break;
             }
 
             context.Response.StatusCode = statusCode;
-
-            var response = new
-            {
-                status = statusCode,
-                message = message,
-                timestamp = DateTime.UtcNow,
-                traceId = context.TraceIdentifier
-            };
 
             var json = JsonSerializer.Serialize(response);
 

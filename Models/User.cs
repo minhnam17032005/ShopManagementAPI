@@ -23,6 +23,8 @@ namespace Demo_Course_Management.Models
         [MaxLength(100)]
         public string Email { get; set; } = null!; // email
 
+        public bool IsActive { get; set; } = true;
+
         [Required]
         public int RoleId { get; set; } // FK → Role
 

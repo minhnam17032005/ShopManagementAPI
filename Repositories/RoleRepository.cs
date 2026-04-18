@@ -37,5 +37,9 @@ namespace Demo_Course_Management.Repositories
         {
             await _context.SaveChangesAsync();
         }
+        public async Task<Role?> GetRoleById(int roleId)
+        {
+            return await _context.Roles.FirstOrDefaultAsync(x => x.Id == roleId);
+        }
     }
 }

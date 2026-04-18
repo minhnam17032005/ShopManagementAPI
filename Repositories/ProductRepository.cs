@@ -38,6 +38,12 @@ namespace Demo_Course_Management.Repositories
         {
             return await _context.Products.FindAsync(id);
         }
+        public async Task<List<Product>> GetByIdsAsync(List<int> ids)
+        {
+            return await _context.Products
+                .Where(x => ids.Contains(x.Id))
+                .ToListAsync();
+        }
 
         public async Task<List<Product>> GetAllWithCategoryAsync()
         {
@@ -64,9 +70,17 @@ namespace Demo_Course_Management.Repositories
             _context.Products.Remove(product);
         }
 
-        public async Task SaveChangesAsync()
+        public async Task SaveAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<bool> HasActiveProductsAsync(int categoryId)
+        {
+            return await _context.Products
+                .AnyAsync(x =>
+                    x.CategoryId == categoryId &&
+                    x.IsActive);
         }
     }
 }

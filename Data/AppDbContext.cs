@@ -41,6 +41,8 @@ namespace Demo_Course_Management.Data
                 .Property(o => o.Status)
                 .HasConversion<string>();
 
+            //Unique 
+
 
             //Relationships
             // =========================

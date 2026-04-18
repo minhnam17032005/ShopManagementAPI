@@ -13,6 +13,7 @@ namespace Demo_Course_Management.Models
 
         [MaxLength(250)]
         public string? Description { get; set; } // Mô tả optional
+        public bool IsActive { get; set; } = true;
 
         public List<Product> Products { get; set; } = new();
     }

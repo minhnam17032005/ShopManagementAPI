@@ -42,9 +42,17 @@ namespace Demo_Course_Management.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductResponseDTO>> Update(int id, ProductRequestDTO dto)
+        public async Task<ActionResult<ProductResponseDTO>> Update(int id, UpdateProductDTO dto)
         {
             return Ok(await _service.UpdateAsync(id, dto));
+        }
+
+        [HttpPatch("{id}/stock")]
+        public async Task<ActionResult<ProductResponseDTO>> UpdateStock(
+            int id,
+            UpdateStockDTO dto)
+        {
+            return Ok(await _service.UpdateStockAsync(id, dto));
         }
 
         [HttpDelete("{id}")]
@@ -52,6 +60,12 @@ namespace Demo_Course_Management.Controllers
         {
             await _service.DeleteAsync(id);
             return NoContent();
+        }
+        [HttpPatch("{id}/restore")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            await _service.RestoreAsync(id);
+            return Ok(new { message = "Khôi phục sản phẩm thành công." });
         }
     }
 }

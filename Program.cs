@@ -26,11 +26,16 @@ builder.Services.AddScoped<PermissionRepository>();
 builder.Services.AddScoped<ProductRepository>();
 builder.Services.AddScoped<RoleRepository>();
 builder.Services.AddScoped<RolePermissionRepository>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<OrderRepository>();
+builder.Services.AddScoped<OrderItemRepository>();
 //====Service====
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<PermissionService>();
 builder.Services.AddScoped<RoleService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<OrderService>();
 
 
 // ===== 3️⃣ Thêm Swagger/OpenAPI để test API =====
