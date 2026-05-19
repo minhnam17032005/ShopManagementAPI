@@ -3,6 +3,7 @@ using Demo_Course_Management.DTOs.request;
 using Demo_Course_Management.DTOs.response;
 using Demo_Course_Management.Models;
 using Demo_Course_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Demo_Course_Management.Controllers
@@ -19,6 +20,7 @@ namespace Demo_Course_Management.Controllers
             _service = service;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<UserResponseDTO>> Create([FromBody] CreateUserReqDTO dto)
         {
@@ -29,7 +31,8 @@ namespace Demo_Course_Management.Controllers
                 result
             );
         }
-        
+
+        [Authorize]
         [HttpPut("{id}/profile")]
         public async Task<ActionResult<UserResponseDTO>> ChangeProfile(int id, ChangeProfileReqDTO dto)
         {
@@ -37,6 +40,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPost("{id}/roles")]
         public async Task<ActionResult<UserResponseDTO>> AddRoles(
             int id,
@@ -51,6 +55,7 @@ namespace Demo_Course_Management.Controllers
             });
         }
 
+        [Authorize]
         [HttpDelete("{id}/roles")]
         public async Task<ActionResult<UserResponseDTO>> RemoveRoles(
             int id,
@@ -64,6 +69,7 @@ namespace Demo_Course_Management.Controllers
             });
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<UserResponseDTO>>> GetAll()
         {
@@ -71,6 +77,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<UserResponseDTO>> GetById(int id)
         {
@@ -78,6 +85,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPatch("{id}/lock")]
         public async Task<ActionResult<StatusResponseDTO>> Lock(int id)
         {
@@ -85,6 +93,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(response);
         }
 
+        [Authorize]
         [HttpPatch("{id}/unlock")]
         public async Task<ActionResult<StatusResponseDTO>> Unlock(int id)
         {

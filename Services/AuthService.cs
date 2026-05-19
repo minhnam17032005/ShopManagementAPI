@@ -23,7 +23,7 @@ namespace Demo_Course_Management.Services
         private readonly JwtBlacklistService _jwtBlacklist;
 
 
-        public AuthService(UserRepository repoUser, RoleRepository repoRole, 
+        public AuthService(UserRepository repoUser, RoleRepository repoRole,
             JwtService jwtService, CurrentUserService currentUser, IConfiguration config, JwtBlacklistService jwtBlacklist)
         {
             _repoUser = repoUser;
@@ -156,16 +156,18 @@ namespace Demo_Course_Management.Services
             var userId = _currentUser.UserId;
 
             // chưa đăng nhập / token invalid
-            if (userId <= 0)
+            if (userId == 0){
                 throw new UnauthorizedException("Bạn chưa đăng nhập hoặc phiên đăng nhập không hợp lệ.");
+            }
 
             // query DB
             var user = await _repoUser.GetByIdWithRolesAsync(userId);
 
             // token cũ / user bị xóa / user bị khóa
             if (user == null || !user.IsActive)
+            {
                 throw new UnauthorizedException("Phiên đăng nhập không hợp lệ hoặc tài khoản đã bị khóa.");
-
+            }
             return new UserResponseDTO
             {
                 Id = user.Id,

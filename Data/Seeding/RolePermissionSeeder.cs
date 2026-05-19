@@ -20,7 +20,8 @@ namespace Demo_Course_Management.Data.Seeding
 
             void AddIfNotExists(int roleId, int permissionId)
             {
-                if (!context.RolePermissions.Any(x => x.RoleId == roleId && x.PermissionId == permissionId))
+                if (!context.RolePermissions.Any(x =>
+                    x.RoleId == roleId && x.PermissionId == permissionId))
                 {
                     toAdd.Add(new RolePermission
                     {
@@ -30,31 +31,44 @@ namespace Demo_Course_Management.Data.Seeding
                 }
             }
 
-            // ADMIN
+            // =========================
+            // 1. ADMIN → ALL PERMISSIONS
+            // =========================
             foreach (var p in permissions)
                 AddIfNotExists(admin.Id, p.Id);
 
-            // MANAGER
+            // =========================
+            // 2. MANAGER → ALL except maybe sensitive USER (tuỳ bạn)
+            // =========================
             foreach (var p in permissions.Where(p =>
                 p.Module is "CATEGORY" or "PRODUCT" or "ORDER" or "USER"))
+            {
                 AddIfNotExists(manager.Id, p.Id);
+            }
 
-            // STAFF
+            // =========================
+            // 3. STAFF → CRUD hạn chế (KHÔNG include GET public product/category vì đã public)
+            // =========================
             foreach (var p in permissions.Where(p =>
                 p.Module == "CATEGORY"
                 || p.Module == "PRODUCT"
                 || (p.Module == "ORDER" &&
                     (p.Method == HttpMethodType.GET || p.Method == HttpMethodType.PATCH))
                 || (p.Module == "USER" && p.Method == HttpMethodType.GET)))
+            {
                 AddIfNotExists(staff.Id, p.Id);
+            }
 
-            // CUSTOMER
+            // =========================
+            // 4. CUSTOMER → chỉ order action (KHÔNG cần xem product/category nữa)
+            // =========================
             foreach (var p in permissions.Where(p =>
-                (p.Module == "CATEGORY" && p.Method == HttpMethodType.GET)
-                || (p.Module == "PRODUCT" && p.Method == HttpMethodType.GET)
-                || (p.Module == "ORDER" &&
-                    (p.Method == HttpMethodType.GET || p.Method == HttpMethodType.POST))))
+                (p.Module == "ORDER" &&
+                    (p.Method == HttpMethodType.GET || p.Method == HttpMethodType.POST))
+                || (p.Module == "USER" && p.Method == HttpMethodType.GET)))
+            {
                 AddIfNotExists(customer.Id, p.Id);
+            }
 
             await context.RolePermissions.AddRangeAsync(toAdd);
             await context.SaveChangesAsync();

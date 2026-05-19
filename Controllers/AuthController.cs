@@ -3,6 +3,7 @@ using Demo_Course_Management.DTOs.request;
 using Demo_Course_Management.DTOs.response;
 using Demo_Course_Management.Middleware;
 using Demo_Course_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Demo_Course_Management.Controllers
@@ -75,6 +76,7 @@ namespace Demo_Course_Management.Controllers
                 return StatusCode(201, result);
             }
 
+            [Authorize]
             [HttpGet("profile")]
             public async Task<ActionResult<UserResponseDTO>> GetProfile()
             {
@@ -82,6 +84,7 @@ namespace Demo_Course_Management.Controllers
                 return Ok(result);
             }
 
+            [Authorize]
             [HttpPost("logout")]
             public async Task<IActionResult> Logout()
             {
@@ -95,7 +98,7 @@ namespace Demo_Course_Management.Controllers
                 // gọi service logout
                 await _authService.LogoutAsync(jti,expClaim,refreshToken);
 
-                // xóa cookie refresh token
+                // xóa refresh token trên cookie
                 Response.Cookies.Delete("refreshToken");
 
                 return Ok(new{

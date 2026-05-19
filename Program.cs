@@ -31,21 +31,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
 
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)
-        ),
+        ValidIssuer =builder.Configuration["Jwt:Issuer"],
+        ValidAudience =builder.Configuration["Jwt:Audience"],
 
+        IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(
+                        builder.Configuration["Jwt:Key"]!
+                    )),
         RoleClaimType = ClaimTypes.Role,
         NameClaimType = "username"
     };
-
     options.MapInboundClaims = false; 
+    options.EventsType = typeof(JwtAuthEvents);
 });
+
 // ===== Thêm controller support =====
 builder.Services.AddControllers().AddJsonOptions(options =>{
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
 });
 
+//===Cho phép service đọc HttpContext===
 builder.Services.AddHttpContextAccessor();
 
 //====Repository====
@@ -62,21 +67,23 @@ builder.Services.AddScoped<OrderItemRepository>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
 builder.Services.AddScoped<PermissionService>();
+
 builder.Services.AddScoped<CurrentUserService>();
+
 builder.Services.AddScoped<RoleService>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
-builder.Services.AddSingleton<JwtBlacklistService>();
+builder.Services.AddScoped<JwtAuthEvents>();
 
-//=== dùng reddis để lưu blacklist accesstoken 
+//=== dùng reddis để lưu blacklist accesstoken
+builder.Services.AddSingleton<JwtBlacklistService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(
         builder.Configuration["Redis:ConnectionString"]!
     )
 );
-
 
 // ===== Thêm Swagger/OpenAPI để test API =====
 builder.Services.AddEndpointsApiExplorer();
@@ -112,21 +119,18 @@ var app = builder.Build();
 //==== DbSeeder run thông qua RunSeeder ở appsettings.Development.json====
 var runSeeder = builder.Configuration.GetValue<bool>("RunSeeder");
 
-if (runSeeder)
-{
+if (runSeeder){
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await DbSeeder.SeedAsync(context);
 }
 
 // ===== Middleware =====
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()){
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseStatusCodePages(async context =>
-{
+app.UseStatusCodePages(async context =>{
     var response = context.HttpContext.Response;
 
     if (response.StatusCode == 404)
@@ -144,11 +148,9 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-app.UseAuthorization(); // nếu muốn dùng [Authorize]
+
+app.UseAuthorization();
+// permission check nên sau authorization
 //app.UseMiddleware<PermissionMiddleware>();
-//app.UseMiddleware<JwtBlacklistMiddleware>();
-
-
 app.MapControllers(); // map tất cả controller
-
 app.Run();

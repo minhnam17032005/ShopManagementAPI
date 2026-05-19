@@ -1,6 +1,7 @@
 ﻿using Demo_Course_Management.DTOs.request;
 using Demo_Course_Management.DTOs.response;
 using Demo_Course_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,6 +19,7 @@ namespace Demo_Course_Management.Controllers
             _service = service;
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<ProductResponseDTO>> Create([FromBody] ProductRequestDTO dto)
         {
@@ -30,7 +32,7 @@ namespace Demo_Course_Management.Controllers
             );
         }
 
-            [HttpGet]
+        [HttpGet]
         public async Task<ActionResult<List<ProductResponseDTO>>> GetAll()
         {
             return Ok(await _service.GetAllAsync());
@@ -42,12 +44,14 @@ namespace Demo_Course_Management.Controllers
             return Ok(await _service.GetByIdAsync(id));
         }
 
+        [Authorize]
         [HttpPut("{id}")]
         public async Task<ActionResult<ProductResponseDTO>> Update(int id, UpdateProductDTO dto)
         {
             return Ok(await _service.UpdateAsync(id, dto));
         }
 
+        [Authorize]
         [HttpPatch("{id}/stock")]
         public async Task<ActionResult<ProductResponseDTO>> UpdateStock(
             int id,
@@ -56,12 +60,15 @@ namespace Demo_Course_Management.Controllers
             return Ok(await _service.UpdateStockAsync(id, dto));
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<ActionResult<StatusResponseDTO>> Delete(int id)
         {
             var response = await _service.DeleteAsync(id);
             return Ok(response);
         }
+
+        [Authorize]
         [HttpPatch("{id}/restore")]
         public async Task<ActionResult<StatusResponseDTO>> Restore(int id)
         {

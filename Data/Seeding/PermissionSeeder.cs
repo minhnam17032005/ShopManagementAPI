@@ -12,16 +12,12 @@ namespace Demo_Course_Management.Data.Seeding
             {
                 // CATEGORY
                 new() { Name = "CREATE_CATEGORY", Description = "Tạo danh mục", ApiPath = "/api/categories", Method = HttpMethodType.POST, Module = "CATEGORY" },
-                new() { Name = "GET_CATEGORIES", Description = "Danh sách danh mục", ApiPath = "/api/categories", Method = HttpMethodType.GET, Module = "CATEGORY" },
-                new() { Name = "GET_CATEGORY_DETAIL", Description = "Chi tiết danh mục", ApiPath = "/api/categories/{id}", Method = HttpMethodType.GET, Module = "CATEGORY" },
                 new() { Name = "UPDATE_CATEGORY", Description = "Cập nhật danh mục", ApiPath = "/api/categories/{id}", Method = HttpMethodType.PUT, Module = "CATEGORY" },
                 new() { Name = "DELETE_CATEGORY", Description = "Xóa danh mục", ApiPath = "/api/categories/{id}", Method = HttpMethodType.DELETE, Module = "CATEGORY" },
                 new() { Name = "RESTORE_CATEGORY", Description = "Khôi phục danh mục", ApiPath = "/api/categories/{id}/restore", Method = HttpMethodType.PATCH, Module = "CATEGORY" },
 
                 // PRODUCT
                 new() { Name = "CREATE_PRODUCT", Description = "Tạo sản phẩm", ApiPath = "/api/products", Method = HttpMethodType.POST, Module = "PRODUCT" },
-                new() { Name = "GET_PRODUCTS", Description = "Danh sách sản phẩm", ApiPath = "/api/products", Method = HttpMethodType.GET, Module = "PRODUCT" },
-                new() { Name = "GET_PRODUCT_DETAIL", Description = "Chi tiết sản phẩm", ApiPath = "/api/products/{id}", Method = HttpMethodType.GET, Module = "PRODUCT" },
                 new() { Name = "UPDATE_PRODUCT", Description = "Cập nhật sản phẩm", ApiPath = "/api/products/{id}", Method = HttpMethodType.PUT, Module = "PRODUCT" },
                 new() { Name = "DELETE_PRODUCT", Description = "Xóa sản phẩm", ApiPath = "/api/products/{id}", Method = HttpMethodType.DELETE, Module = "PRODUCT" },
                 new() { Name = "UPDATE_PRODUCT_STOCK", Description = "Cập nhật tồn kho", ApiPath = "/api/products/{id}/stock", Method = HttpMethodType.PATCH, Module = "PRODUCT" },

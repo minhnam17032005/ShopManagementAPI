@@ -1,6 +1,7 @@
 ﻿using Demo_Course_Management.DTOs.request;
 using Demo_Course_Management.DTOs.response;
 using Demo_Course_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Demo_Course_Management.Controllers
@@ -17,6 +18,7 @@ namespace Demo_Course_Management.Controllers
             _service = service;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<PermissionResponseDTO>>> GetAll()
         {
@@ -24,6 +26,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<PermissionResponseDTO>> GetById(int id)
         {

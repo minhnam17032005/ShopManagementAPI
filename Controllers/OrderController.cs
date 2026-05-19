@@ -2,6 +2,7 @@
 using Demo_Course_Management.DTOs.response;
 using Demo_Course_Management.Models;
 using Demo_Course_Management.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Demo_Course_Management.Controllers
@@ -18,6 +19,7 @@ namespace Demo_Course_Management.Controllers
                 _service = service;
             }
 
+        [Authorize]
         [HttpPost]
         public async Task<ActionResult<OrderResponseDTO>> Create(CreateOrderReqDTO dto)
         {
@@ -29,6 +31,7 @@ namespace Demo_Course_Management.Controllers
            );
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<ActionResult<List<OrderResponseDTO>>> GetAll()
         {
@@ -36,6 +39,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<ActionResult<OrderResponseDTO>> GetById(int id)
         {
@@ -43,6 +47,7 @@ namespace Demo_Course_Management.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPatch("{id}/status")]
         public async Task<ActionResult<OrderResponseDTO>> UpdateStatus(int id, UpdateOrderStatusReqDTO dto)
         {
