@@ -32,12 +32,14 @@ namespace ShopManagementAPI.Controllers
             );
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<List<ProductResponseDTO>>> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<ProductResponseDTO>> GetById(int id)
         {

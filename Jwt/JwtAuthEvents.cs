@@ -1,91 +1,86 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
 
 namespace ShopManagementAPI.Jwt
 {
     public class JwtAuthEvents : JwtBearerEvents
     {
-        private readonly JwtBlacklistService _blacklistService;
-
-        public JwtAuthEvents(JwtBlacklistService blacklistService)
-        {
-            _blacklistService = blacklistService;
-        }
-
-        // 1. TOKEN VALIDATED (BLACKLIST CHECK)
-        public override async Task TokenValidated(TokenValidatedContext context)
-        {
-            var jti = context.Principal?.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-
-            if (!string.IsNullOrEmpty(jti))
-            {
-                var isBlacklisted = await _blacklistService.IsBlacklistedAsync(jti);
-
-                if (isBlacklisted)
-                {
-                    context.Fail("Token đã bị thu hồi (logout).");
-                    return;
-                }
-            }
-
-            await base.TokenValidated(context);
-        }
-
-        // 2. AUTH FAILED (TOKEN INVALID / EXPIRED)
-        public override Task AuthenticationFailed(AuthenticationFailedContext context)
+        // TOKEN INVALID / EXPIRED
+        public override async Task AuthenticationFailed(AuthenticationFailedContext context)
         {
             context.NoResult();
 
-            if (context.Response.HasStarted)
-                return Task.CompletedTask;
-
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 
-            var message = context.Exception switch
+            string code = "TOKEN_INVALID";
+            string message = "Access token không hợp lệ";
+
+            // TOKEN EXPIRED
+            if (context.Exception is SecurityTokenExpiredException)
             {
-                SecurityTokenExpiredException =>
-                    "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+                code = "TOKEN_EXPIRED";
+                message = "Access token đã hết hạn";
+            }
 
-                SecurityTokenInvalidSignatureException =>
-                    "Token không hợp lệ. Vui lòng đăng nhập lại.",
+            // INVALID SIGNATURE
+            else if (context.Exception is SecurityTokenInvalidSignatureException)
+            {
+                code = "INVALID_SIGNATURE";
+                message = "Chữ ký token không hợp lệ";
+            }
 
-                _ =>
-                    "Xác thực thất bại. Vui lòng đăng nhập lại."
+            // MALFORMED TOKEN
+            else if (
+                context.Exception is SecurityTokenMalformedException ||
+                context.Exception is ArgumentException
+            )
+            {
+                code = "MALFORMED_TOKEN";
+                message = "Token không đúng định dạng";
+            }
+
+            var response = new
+            {
+                success = false,
+                statusCode = StatusCodes.Status401Unauthorized,
+                code,
+                message,
+                timestamp = DateTime.UtcNow
             };
 
-            var result = JsonSerializer.Serialize(new
-            {
-                success = false,
-                statusCode = 401,
-                message
-            });
-
-            return context.Response.WriteAsync(result);
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(response)
+            );
         }
 
-        // 3. CHALLENGE (NO TOKEN / 401 DEFAULT)
-        public override Task Challenge(JwtBearerChallengeContext context)
+        // NO TOKEN
+        public override async Task Challenge(JwtBearerChallengeContext context)
         {
-            context.HandleResponse();
-            
-
+            // tránh ghi đè response nếu AuthenticationFailed đã xử lý
             if (context.Response.HasStarted)
-                return Task.CompletedTask;
+            {
+                return;
+            }
 
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.HandleResponse();
+
             context.Response.ContentType = "application/json";
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
 
-            var result = JsonSerializer.Serialize(new
+            var response = new
             {
                 success = false,
-                statusCode = 401,
-                message = "Bạn chưa đăng nhập hoặc token không hợp lệ."
-            });
+                statusCode = StatusCodes.Status401Unauthorized,
+                code = "TOKEN_MISSING",
+                message = "Vui lòng đăng nhập",
+                timestamp = DateTime.UtcNow
+            };
 
-            return context.Response.WriteAsync(result);
+            await context.Response.WriteAsync(
+                JsonSerializer.Serialize(response)
+            );
         }
     }
 }

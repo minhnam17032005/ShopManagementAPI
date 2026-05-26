@@ -5,6 +5,8 @@ using ShopManagementAPI.Middleware;
 using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using ShopManagementAPI.Jwt;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -12,24 +14,27 @@ namespace ShopManagementAPI.Controllers
     [Route("api/auth")]
     [Produces("application/json")]
     public class AuthController : ControllerBase
+    {
+        private readonly AuthService _authService;
+        private readonly IConfiguration _config;
+        private readonly CurrentUserService _currentUser;
+
+        public AuthController(AuthService authService, IConfiguration config, CurrentUserService currentUser)
         {
-            private readonly AuthService _authService;
-            private readonly IConfiguration _config;
+            _authService = authService;
+            _config = config;
+            _currentUser = currentUser;
+        }
 
-            public AuthController(AuthService authService, IConfiguration config)
-            {
-                _authService = authService;
-                _config = config;
-            }
-
-            [HttpPost("login")]
-            public async Task<ActionResult<LoginResponseDTO>> Login(LoginRequestDTO dto)
-            {
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<ActionResult<LoginResponseDTO>> Login(LoginRequestDTO dto)
+        {
             var (response, refreshToken) = await _authService.LoginAsync(dto);
 
             // set cookie
             Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-                {
+            {
                 HttpOnly = true, // không cho JS đọc (chống XSS)
 
                 Secure = true, // chỉ gửi qua HTTPS (prod bắt buộc)
@@ -39,71 +44,96 @@ namespace ShopManagementAPI.Controllers
                 Expires = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
                 )
             });
-                return Ok(response);
-            }
+            return Ok(response);
+        }
 
-            [HttpPost("refresh")]
-            public async Task<ActionResult<RefreshResponseDTO>> Refresh()
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<ActionResult<RefreshResponseDTO>> Refresh()
+        {
+            // lấy refresh token từ cookie
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (string.IsNullOrEmpty(refreshToken))
+                throw new UnauthorizedException("Unauthorized");
+
+            // gọi service
+            var (response, newRefreshToken) = await _authService.RefreshTokenAsync(refreshToken);
+
+            // set cookie mới
+            Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
             {
-                // lấy refresh token từ cookie
-                var refreshToken = Request.Cookies["refreshToken"];
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(
+                    int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
+                )
+            });
 
-                if (string.IsNullOrEmpty(refreshToken))
-                    throw new UnauthorizedException("Unauthorized");
+            return Ok(response);
+        }
 
-                // gọi service
-                var (response, newRefreshToken) = await _authService.RefreshTokenAsync(refreshToken);
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<ActionResult<RegisterResponseDTO>> Register(RegisterRequestDTO dto)
+        {
+            var result = await _authService.RegisterAsync(dto);
 
-                // set cookie mới
-                Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    Expires = DateTime.UtcNow.AddDays(
-                        int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
-                    )
-                });
+            return StatusCode(201, result);
+        }
 
-                return Ok(response);
-            }
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<ActionResult<UserResponseDTO>> GetProfile()
+        {
+            var result = await _authService.GetProfileAsync();
+            return Ok(result);
+        }
 
-            [HttpPost("register")]
-            public async Task<ActionResult<RegisterResponseDTO>> Register(RegisterRequestDTO dto)
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<ActionResult<SuccessResponseDTO>> Logout()
+        {
+            //lấy Jti và ExpiredAt từ CurrentUserService
+            var jti = _currentUser.Jti;
+            var expClaim = _currentUser.ExpiredAtString;
+
+            // lấy refresh token từ cookie
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            // gọi service logout
+            await _authService.LogoutAsync(jti, expClaim, refreshToken);
+
+            // xóa refresh token trên cookie
+            Response.Cookies.Delete("refreshToken");
+
+            return Ok(new
             {
-                var result = await _authService.RegisterAsync(dto);
+                success = true,
+                message = "Đăng xuất thành công."
+            });
+        }
 
-                return StatusCode(201, result);
-            }
-
-            [Authorize]
-            [HttpGet("profile")]
-            public async Task<ActionResult<UserResponseDTO>> GetProfile()
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<ActionResult<SuccessResponseDTO>> ChangePassword(ChangePasswordRequestDTO request)
+        {
+            // lấy user id từ token
+            var userId = _currentUser.UserId;
+            // lấy jti access token
+            var jti = _currentUser.Jti;
+            
+            await _authService.ChangePasswordAsync(
+                userId,
+                request,
+                jti
+            );
+            return Ok(new
             {
-                var result = await _authService.GetProfileAsync();
-                return Ok(result);
-            }
-
-            [Authorize]
-            [HttpPost("logout")]
-            public async Task<IActionResult> Logout()
-            {
-                var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-
-                var expClaim = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
-                
-                // lấy refresh token từ cookie
-                var refreshToken = Request.Cookies["refreshToken"];
-
-                // gọi service logout
-                await _authService.LogoutAsync(jti,expClaim,refreshToken);
-
-                // xóa refresh token trên cookie
-                Response.Cookies.Delete("refreshToken");
-
-                return Ok(new{
-                    message = "Đăng xuất thành công."
-                });
-            }
+                success = true,
+                message = "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."
+            });
+        }
     }
 }

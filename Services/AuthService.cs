@@ -58,18 +58,19 @@ namespace ShopManagementAPI.Services
 
             var response = new LoginResponseDTO
             {
-                User = new LoginResponseDTO.UserInfo
+                User = new UserInfoDTO
                 {
-                Id = user.Id,
-                Username = user.Username,
-                Roles = user.UserRoles
+                    Id = user.Id,
+                    Username = user.Username,
+                    Roles = user.UserRoles
                     .Select(x => new RoleItemDTO{
                         Id = x.RoleId,
                         Name = x.Role.Name
-                        })
-                        .ToList()},
+                    })
+                    .ToList()
+},
                 AccessToken = token
-                };
+            };
 
             //trả ra LoginResponseDTO và refreshToken cho controller 
             return (response, refreshToken);
@@ -220,6 +221,58 @@ namespace ShopManagementAPI.Services
                     await _repoUser.SaveAsync();
                 }
             }
+        }
+
+        public async Task ChangePasswordAsync(int userId,ChangePasswordRequestDTO request,string jti)
+        {
+            var user = await _repoUser.GetByIdAsync(userId);
+
+            // check mật khẩu cũ
+            bool isCorrectPassword = BCrypt.Net.BCrypt.Verify(
+                request.CurrentPassword,
+                user.PasswordHash
+            );
+            if (!isCorrectPassword)
+            {
+                throw new BadRequestException(
+                    "Mật khẩu hiện tại không đúng"
+                );
+            }
+            // check confirm password
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                throw new BadRequestException(
+                    "Xác nhận mật khẩu không khớp"
+                );
+            }
+
+            // check password mới khác password cũ
+            bool isSameOldPassword = BCrypt.Net.BCrypt.Verify(
+                request.NewPassword,
+                user.PasswordHash
+            );
+            if (isSameOldPassword)
+            {
+                throw new BadRequestException(
+                    "Mật khẩu mới không được trùng mật khẩu cũ"
+                );
+            }
+
+            // hash password mới
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
+                request.NewPassword
+            );
+
+            // revoke refresh token
+            user.RefreshToken = null;
+            user.RefreshTokenExpiredAt = null;
+            
+            await _repoUser.SaveAsync();
+            // blacklist access token hiện tại
+            await _jwtBlacklist.BlacklistTokenAsync(
+                jti,
+                TimeSpan.FromMinutes(15)
+            );
         }
 
 

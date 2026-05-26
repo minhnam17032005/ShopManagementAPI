@@ -13,6 +13,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.Text;
 using StackExchange.Redis;
+using Microsoft.OpenApi.Models;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -85,34 +87,54 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     )
 );
 
-// ===== Thêm Swagger/OpenAPI để test API =====
 builder.Services.AddEndpointsApiExplorer();
+// ===== Thêm Swagger/OpenAPI để test API =====
 builder.Services.AddSwaggerGen(c =>
-{
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+{   //JWT ACCESS TOKEN
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "Bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Nhập token dạng: Bearer {your_token}"
+        Title = "ShopManagementAPI",
+        Version = "v1",
+        Description = "Mini Ecommerce API với JWT + Refresh Token"
     });
 
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    // JWT ACCESS TOKEN
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description =
+        "JWT Access Token\n\n" +
+        "Format: Bearer {your_access_token}\n\n" +
+        "Refresh token được gửi tự động bằng HttpOnly Cookie."
+    });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            new OpenApiSecurityScheme
             {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                Reference = new OpenApiReference
                 {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Type = ReferenceType.SecurityScheme,
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
+
+    // XML COMMENT
+    var xmlFile =$"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+
+    var xmlPath =Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+    c.IncludeXmlComments(xmlPath);
+
+    // tránh duplicate schema
+    c.CustomSchemaIds(x => x.FullName);
 });
 
 var app = builder.Build();
@@ -128,7 +150,13 @@ if (runSeeder){
 // ===== Middleware =====
 if (app.Environment.IsDevelopment()){
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        // giữ token khi refresh browser
+        c.ConfigObject.PersistAuthorization = true;
+
+        c.DocumentTitle = "ShopManagementAPI Docs";
+    });
 }
 app.UseStatusCodePages(async context =>{
     var response = context.HttpContext.Response;
@@ -148,9 +176,12 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
-
+app.UseMiddleware<JwtSecurityMiddleware>();
 app.UseAuthorization();
+
+
+
 // permission check nên sau authorization
 //app.UseMiddleware<PermissionMiddleware>();
-app.MapControllers(); // map tất cả controller
+app.MapControllers();
 app.Run();

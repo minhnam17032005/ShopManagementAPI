@@ -39,6 +39,7 @@ namespace ShopManagementAPI.Controllers
             return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<List<CategoryResponseDTO>>> GetAll()
         {
@@ -46,6 +47,7 @@ namespace ShopManagementAPI.Controllers
             return Ok(result);
         }
 
+        [AllowAnonymous]
         [HttpGet("{id}")]
         public async Task<ActionResult<CategoryResponseDTO>> GetById(int id)
         {

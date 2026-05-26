@@ -47,7 +47,7 @@
                 }
                     };
                     break;
-
+                    //không tìm thấy dữ liệu được nêu 
                 case NotFoundException:
 
                     statusCode = StatusCodes.Status404NotFound;
