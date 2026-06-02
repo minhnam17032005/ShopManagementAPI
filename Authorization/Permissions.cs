@@ -23,6 +23,11 @@ namespace ShopManagementAPI.Authorization
         public const string GetOrderDetail = "GET_ORDER_DETAIL";
         public const string UpdateOrderStatus = "UPDATE_ORDER_STATUS";
 
+        // MY ORDER
+        public const string GetMyOrders = "GET_MY_ORDERS";
+        public const string GetMyOrderDetail = "GET_MY_ORDER_DETAIL";
+        public const string CancelOrder = "CANCEL_ORDER";
+
         // USER
         public const string CreateUser = "CREATE_USER";
         public const string GetUsers = "GET_USERS";
@@ -42,6 +47,11 @@ namespace ShopManagementAPI.Authorization
         // PERMISSION
         public const string GetPermissions = "GET_PERMISSIONS";
         public const string GetPermissionDetail = "GET_PERMISSION_DETAIL";
+
+        // DASHBOARD
+        public const string ViewDashboardOverview = "VIEW_DASHBOARD_OVERVIEW";
+        public const string ViewRevenue = "VIEW_REVENUE";
+
 
 
     }

@@ -28,13 +28,16 @@ namespace ShopManagementAPI.Data.Seeding
                 new() { Name = "GET_ORDERS", Description = "Danh sách đơn hàng", ApiPath = "/api/orders", Method = HttpMethodType.GET, Module = "ORDER" },
                 new() { Name = "GET_ORDER_DETAIL", Description = "Chi tiết đơn hàng", ApiPath = "/api/orders/{id}", Method = HttpMethodType.GET, Module = "ORDER" },
                 new() { Name = "UPDATE_ORDER_STATUS", Description = "Cập nhật trạng thái đơn hàng", ApiPath = "/api/orders/{id}/status", Method = HttpMethodType.PATCH, Module = "ORDER" },
-
+                new() { Name = "GET_MY_ORDERS", Description = "Danh sách đơn hàng của tôi",ApiPath = "/api/orders/my-orders",Method = HttpMethodType.GET,Module = "ORDER"},
+                new() { Name = "GET_MY_ORDER_DETAIL", Description = "Chi tiết đơn hàng của tôi", ApiPath = "/api/orders/my-orders/{id}", Method = HttpMethodType.GET, Module = "ORDER"},
+                new() { Name = "CANCEL_ORDER", Description = "Hủy đơn hàng", ApiPath = "/api/orders/{id}/cancel", Method = HttpMethodType.PATCH, Module = "ORDER"},
+                
+                
                 // USER
                 new() { Name = "CREATE_USER", Description = "Tạo user", ApiPath = "/api/users", Method = HttpMethodType.POST, Module = "USER" },
                 new() { Name = "GET_USERS", Description = "Danh sách user", ApiPath = "/api/users", Method = HttpMethodType.GET, Module = "USER" },
                 new() { Name = "GET_USER_DETAIL", Description = "Chi tiết user", ApiPath = "/api/users/{id}", Method = HttpMethodType.GET, Module = "USER" },
-                new() { Name = "UPDATE_USER_PROFILE", Description = "Cập nhật profile", ApiPath = "/api/users/{id}/profile", Method = HttpMethodType.PUT, Module = "USER" },
-                new() { Name = "ADD_USER_ROLES", Description = "Thêm role cho user", ApiPath = "/api/users/{id}/roles", Method = HttpMethodType.POST, Module = "USER" },
+                new() { Name = "UPDATE_USER_PROFILE", Description = "Cập nhật profile", ApiPath = "/api/users/profile", Method = HttpMethodType.PUT,Module = "USER"},                new() { Name = "ADD_USER_ROLES", Description = "Thêm role cho user", ApiPath = "/api/users/{id}/roles", Method = HttpMethodType.POST, Module = "USER" },
                 new() { Name = "REMOVE_USER_ROLES", Description = "Xóa role khỏi user", ApiPath = "/api/users/{id}/roles", Method = HttpMethodType.DELETE, Module = "USER" },
                 new() { Name = "LOCK_USER", Description = "Khóa tài khoản", ApiPath = "/api/users/{id}/lock", Method = HttpMethodType.PATCH, Module = "USER" },
                 new() { Name = "UNLOCK_USER", Description = "Mở khóa tài khoản", ApiPath = "/api/users/{id}/unlock", Method = HttpMethodType.PATCH, Module = "USER" },
@@ -47,7 +50,11 @@ namespace ShopManagementAPI.Data.Seeding
 
                 // PERMISSION
                 new() { Name = "GET_PERMISSIONS", Description = "Danh sách permission", ApiPath = "/api/permissions", Method = HttpMethodType.GET, Module = "PERMISSION" },
-                new() { Name = "GET_PERMISSION_DETAIL", Description = "Chi tiết permission", ApiPath = "/api/permissions/{id}", Method = HttpMethodType.GET, Module = "PERMISSION" }
+                new() { Name = "GET_PERMISSION_DETAIL", Description = "Chi tiết permission", ApiPath = "/api/permissions/{id}", Method = HttpMethodType.GET, Module = "PERMISSION" },
+            
+                //DASHBOARD
+                new() { Name = "VIEW_DASHBOARD_OVERVIEW", Description = "Xem dashboard tổng quan",ApiPath = "/api/dashboard/overview",Method = HttpMethodType.GET,Module = "DASHBOARD"},
+                new() { Name = "VIEW_REVENUE", Description = "Xem doanh thu", ApiPath = "/api/dashboard/revenue", Method = HttpMethodType.GET, Module = "DASHBOARD"}
             };
 
             foreach (var p in permissions)

@@ -65,25 +65,15 @@ namespace ShopManagementAPI.Authorization
                 });
         }
 
-        //lock and unlock 
+        //lock/unlock chỉ admin
         public bool CanManageUser(
         IEnumerable<RoleType> currentRoles,
         User targetUser)
         {
-            return currentRoles.Any(role =>
-                role switch
-                {
-                    RoleType.ADMIN => true,
-
-                    RoleType.MANAGER =>
-                        HasRole(targetUser, RoleType.STAFF) ||
-                        HasRole(targetUser, RoleType.CUSTOMER),
-
-                    _ => false
-                });
+            return currentRoles.Contains(RoleType.ADMIN);
         }
 
-        //add remove permissions for role 
+        //add remove permissions chỉ admin
         public bool CanManageRole(
         IEnumerable<RoleType> currentRoles,
         Role targetRole)

@@ -53,7 +53,7 @@ namespace ShopManagementAPIControllers
 
         //dành cho customer
         [Authorize]
-        //[RequirePermission
+        [RequirePermission(Permissions.GetMyOrders)]
         [HttpGet("my-orders")]
         public async Task<ActionResult<List<OrderResponseDTO>>> GetMyOrders()
         {
@@ -61,7 +61,7 @@ namespace ShopManagementAPIControllers
             return Ok(result);
         }   
         [Authorize]
-        //[RequirePermission
+        [RequirePermission(Permissions.GetMyOrderDetail)]
         [HttpGet("my-orders/{id}")]
         public async Task<ActionResult<OrderResponseDTO>> GetMyOrderById(int id)
         {
@@ -79,7 +79,7 @@ namespace ShopManagementAPIControllers
         }
 
         [Authorize]
-        //[RequirePermission
+        [RequirePermission(Permissions.CancelOrder)]
         [HttpPatch("{id}/cancel")]
         public async Task<ActionResult<OrderResponseDTO>> CancelOrder(int id)
         {

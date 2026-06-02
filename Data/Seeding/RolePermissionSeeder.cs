@@ -1,6 +1,6 @@
-﻿using ShopManagementAPI.Models.Enum;
+﻿using Microsoft.EntityFrameworkCore;
 using ShopManagementAPI.Models;
-using Microsoft.EntityFrameworkCore;
+using ShopManagementAPI.Models.Enum;
 
 namespace ShopManagementAPI.Data.Seeding
 {
@@ -21,7 +21,8 @@ namespace ShopManagementAPI.Data.Seeding
             void AddIfNotExists(int roleId, int permissionId)
             {
                 if (!context.RolePermissions.Any(x =>
-                    x.RoleId == roleId && x.PermissionId == permissionId))
+                    x.RoleId == roleId &&
+                    x.PermissionId == permissionId))
                 {
                     toAdd.Add(new RolePermission
                     {
@@ -32,42 +33,96 @@ namespace ShopManagementAPI.Data.Seeding
             }
 
             // =========================
-            // 1. ADMIN → ALL PERMISSIONS
+            // ADMIN
+            // Toàn quyền
             // =========================
-            foreach (var p in permissions)
-                AddIfNotExists(admin.Id, p.Id);
-
-            // =========================
-            // 2. MANAGER → ALL except maybe sensitive USER (tuỳ bạn)
-            // =========================
-            foreach (var p in permissions.Where(p =>
-                p.Module is "CATEGORY" or "PRODUCT" or "ORDER" or "USER"))
+            foreach (var permission in permissions)
             {
-                AddIfNotExists(manager.Id, p.Id);
+                AddIfNotExists(admin.Id, permission.Id);
             }
 
             // =========================
-            // 3. STAFF → CRUD hạn chế (KHÔNG include GET public product/category vì đã public)
+            // MANAGER
+            // Quản lý sản phẩm, danh mục, kho
+            // Xem đơn hàng
+            // Xem user
+            // Dashboard + Revenue
             // =========================
-            foreach (var p in permissions.Where(p =>
-                p.Module == "CATEGORY"
-                || p.Module == "PRODUCT"
-                || (p.Module == "ORDER" &&
-                    (p.Method == HttpMethodType.GET || p.Method == HttpMethodType.PATCH))
-                || (p.Module == "USER" && p.Method == HttpMethodType.GET)))
+            string[] managerPermissions =
             {
-                AddIfNotExists(staff.Id, p.Id);
+                // Category
+                "CREATE_CATEGORY",
+                "UPDATE_CATEGORY",
+                "DELETE_CATEGORY",
+                "RESTORE_CATEGORY",
+
+                // Product
+                "CREATE_PRODUCT",
+                "UPDATE_PRODUCT",
+                "DELETE_PRODUCT",
+                "UPDATE_PRODUCT_STOCK",
+                "RESTORE_PRODUCT",
+
+                // Order
+                "GET_ORDERS",
+                "GET_ORDER_DETAIL",
+
+                // User
+                "GET_USERS",
+                "GET_USER_DETAIL",
+
+                // Dashboard
+                "VIEW_DASHBOARD_OVERVIEW",
+                "VIEW_REVENUE"
+            };
+
+            foreach (var permission in permissions
+                .Where(x => managerPermissions.Contains(x.Name)))
+            {
+                AddIfNotExists(manager.Id, permission.Id);
             }
 
             // =========================
-            // 4. CUSTOMER → chỉ order action (KHÔNG cần xem product/category nữa)
+            // STAFF
+            // Xử lý đơn hàng
             // =========================
-            foreach (var p in permissions.Where(p =>
-                (p.Module == "ORDER" &&
-                    (p.Method == HttpMethodType.GET || p.Method == HttpMethodType.POST))
-                || (p.Module == "USER" && p.Method == HttpMethodType.GET)))
+            string[] staffPermissions =
             {
-                AddIfNotExists(customer.Id, p.Id);
+                "GET_ORDERS",
+                "GET_ORDER_DETAIL",
+                "UPDATE_ORDER_STATUS",
+
+                "GET_USER_DETAIL",
+
+                "VIEW_DASHBOARD_OVERVIEW"
+            };
+
+            foreach (var permission in permissions
+                .Where(x => staffPermissions.Contains(x.Name)))
+            {
+                AddIfNotExists(staff.Id, permission.Id);
+            }
+
+            // =========================
+            // CUSTOMER
+            // Mua hàng
+            // =========================
+            string[] customerPermissions =
+            {
+                "CREATE_ORDER",
+
+                "GET_MY_ORDERS",
+                "GET_MY_ORDER_DETAIL",
+
+                "CANCEL_ORDER",
+
+                "UPDATE_USER_PROFILE"
+            };
+
+            foreach (var permission in permissions
+                .Where(x => customerPermissions.Contains(x.Name)))
+            {
+                AddIfNotExists(customer.Id, permission.Id);
             }
 
             await context.RolePermissions.AddRangeAsync(toAdd);

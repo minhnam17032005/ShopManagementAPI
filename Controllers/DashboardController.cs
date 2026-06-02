@@ -8,6 +8,7 @@ namespace ShopManagementAPI.Controllers
 {
     [Route("api/dashboard")]
     [ApiController]
+    [Produces("application/json")]
     public class DashboardController : ControllerBase
     {
         private readonly DashboardService _service;
@@ -20,7 +21,7 @@ namespace ShopManagementAPI.Controllers
 
         // Dashboard tổng quan
         [Authorize]
-        //[RequirePermission(Permissions.ViewDashboardOverview)]
+        [RequirePermission(Permissions.ViewDashboardOverview)]
         [HttpGet("overview")]
         public async Task<ActionResult<DashboardOverviewDTO>>
             GetOverview()
@@ -32,7 +33,7 @@ namespace ShopManagementAPI.Controllers
 
         // Dashboard doanh thu
         [Authorize]
-        //[RequirePermission(Permissions.ViewRevenue)]
+        [RequirePermission(Permissions.ViewRevenue)]
         [HttpGet("revenue")]
         public async Task<ActionResult<RevenueDashboardDTO>>
             GetRevenue()
