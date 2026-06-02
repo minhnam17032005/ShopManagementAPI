@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.Extensions;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -23,65 +25,98 @@ namespace ShopManagementAPI.Controllers
         [Authorize]
         [RequirePermission(Permissions.CreateProduct)]
         [HttpPost]
-        public async Task<ActionResult<ProductResponseDTO>> Create([FromBody] ProductRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<ProductResponseDTO>>> Create(
+    [FromBody] ProductRequestDTO dto)
         {
             var product = await _service.CreateAsync(dto);
 
-            return CreatedAtAction(
-                nameof(GetById),           // tên action getById trong controller
-                new { id = product.Id },   // route values
-                product                    // body trả về
+            return this.ApiCreated(
+                product,
+                "Tạo sản phẩm thành công"
             );
         }
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<ActionResult<List<ProductResponseDTO>>> GetAll()
+        public async Task<ActionResult<ApiResponse<List<ProductResponseDTO>>>> GetAll()
         {
-            return Ok(await _service.GetAllAsync());
+            var result = await _service.GetAllAsync();
+
+            return this.ApiOk(
+                result,
+                "Lấy danh sách sản phẩm thành công"
+            );
         }
 
         [AllowAnonymous]
         [HttpGet("{id}")]
-        public async Task<ActionResult<ProductResponseDTO>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<ProductResponseDTO>>> GetById(
+            int id)
         {
-            return Ok(await _service.GetByIdAsync(id));
+            var result = await _service.GetByIdAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Lấy chi tiết sản phẩm thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.UpdateProduct)]
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductResponseDTO>> Update(int id, UpdateProductDTO dto)
+        public async Task<ActionResult<ApiResponse<ProductResponseDTO>>> Update(
+            int id,
+            UpdateProductDTO dto)
         {
-            return Ok(await _service.UpdateAsync(id, dto));
+            var result = await _service.UpdateAsync(id, dto);
+
+            return this.ApiOk(
+                result,
+                "Cập nhật sản phẩm thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.UpdateProductStock)]
         [HttpPatch("{id}/stock")]
-        public async Task<ActionResult<ProductResponseDTO>> UpdateStock(
+        public async Task<ActionResult<ApiResponse<ProductResponseDTO>>> UpdateStock(
             int id,
             UpdateStockDTO dto)
         {
-            return Ok(await _service.UpdateStockAsync(id, dto));
+            var result = await _service.UpdateStockAsync(id, dto);
+
+            return this.ApiOk(
+                result,
+                "Cập nhật tồn kho thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.DeleteProduct)]
         [HttpDelete("{id}")]
-        public async Task<ActionResult<StatusResponseDTO>> Delete(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Delete(
+    int id)
         {
-            var response = await _service.DeleteAsync(id);
-            return Ok(response);
+            var result = await _service.DeleteAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Xóa sản phẩm thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.RestoreProduct)]
         [HttpPatch("{id}/restore")]
-        public async Task<ActionResult<StatusResponseDTO>> Restore(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Restore(
+            int id)
         {
-            var response =  await _service.RestoreAsync(id);
-            return Ok(response);
+            var result = await _service.RestoreAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Khôi phục sản phẩm thành công"
+            );
         }
     }
 }

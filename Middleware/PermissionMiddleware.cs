@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Repositories;
+using ShopManagementAPI.DTOs.Common;
 
 namespace ShopManagementAPI.Middleware
 {
@@ -52,13 +53,11 @@ namespace ShopManagementAPI.Middleware
                 context.Response.ContentType = "application/json";
                 context.Response.StatusCode =StatusCodes.Status403Forbidden;
 
-                var forbiddenResponse = new
+                var forbiddenResponse = new ErrorResponse
                 {
-                    success = false,
-                    statusCode = StatusCodes.Status403Forbidden,
-                    code = "FORBIDDEN",
-                    message = "Bạn không có quyền truy cập",
-                    timestamp = DateTime.UtcNow
+                    StatusCode = StatusCodes.Status403Forbidden,
+                    Code = "FORBIDDEN",
+                    Message = "Bạn không có quyền truy cập"
                 };
 
                 await context.Response.WriteAsync(

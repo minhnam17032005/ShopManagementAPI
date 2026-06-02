@@ -5,6 +5,8 @@ using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.Extensions;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -23,57 +25,83 @@ namespace ShopManagementAPI.Controllers
         [Authorize]
         [RequirePermission(Permissions.CreateCategory)]
         [HttpPost]
-        public async Task<ActionResult<CategoryResponseDTO>> Create([FromBody] CategoryRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<CategoryResponseDTO>>> Create(
+    [FromBody] CategoryRequestDTO dto)
         {
             var category = await _service.CreateAsync(dto);
-            return CreatedAtAction(
-                nameof(GetById),       // action GetById trong controller
-                new { id = category.Id }, // route values
-                category                // body trả về
+
+            return this.ApiCreated(
+                category,
+                "Tạo danh mục thành công"
             );
         }
 
         [Authorize]
         [RequirePermission(Permissions.UpdateCategory)]
         [HttpPut("{id}")]
-        public async Task<ActionResult<CategoryResponseDTO>> Update([FromRoute] int id, [FromBody] CategoryRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<CategoryResponseDTO>>> Update(
+            [FromRoute] int id,
+            [FromBody] CategoryRequestDTO dto)
         {
             var result = await _service.UpdateAsync(id, dto);
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Cập nhật danh mục thành công"
+            );
         }
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<ActionResult<List<CategoryResponseDTO>>> GetAll()
+        public async Task<ActionResult<ApiResponse<List<CategoryResponseDTO>>>> GetAll()
         {
             var result = await _service.GetAllAsync();
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Lấy danh sách danh mục thành công"
+            );
         }
 
         [AllowAnonymous]
         [HttpGet("{id}")]
-        public async Task<ActionResult<CategoryResponseDTO>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<CategoryResponseDTO>>> GetById(
+            int id)
         {
             var result = await _service.GetByIdAsync(id);
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Lấy chi tiết danh mục thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.DeleteCategory)]
         [HttpDelete("{id}")]
-        public async Task<ActionResult<StatusResponseDTO>> Delete(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Delete(
+     int id)
         {
-            var response = await _service.DeleteAsync(id);
-            return Ok(response);
+            var result = await _service.DeleteAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Xóa danh mục thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.RestoreCategory)]
         [HttpPatch("{id}/restore")]
-        public async Task<ActionResult<StatusResponseDTO>> Restore(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Restore(
+            int id)
         {
-            var response = await _service.RestoreAsync(id);
-            return Ok(response);
+            var result = await _service.RestoreAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Khôi phục danh mục thành công"
+            );
         }
     }
 }

@@ -101,8 +101,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = category.IsActive,
-                Message = "Category deactivated successfully"
+                IsActive = category.IsActive
             };
         }
 
@@ -121,8 +120,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = category.IsActive,
-                Message = "Category restored successfully"
+                IsActive = category.IsActive
             };
         }
 

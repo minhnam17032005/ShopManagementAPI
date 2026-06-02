@@ -139,8 +139,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = product.IsActive,
-                Message = "Product deactivated successfully"
+                IsActive = product.IsActive
             };
         }
 
@@ -166,8 +165,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = product.IsActive,
-                Message = "Product restored successfully"
+                IsActive = product.IsActive
             };
         }
 

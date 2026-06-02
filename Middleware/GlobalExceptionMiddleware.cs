@@ -1,9 +1,9 @@
-﻿namespace ShopManagementAPI.Middleware
-{
-    using System.Net;
-    using System.Text.Json;
-    using ShopManagementAPI.Exceptions;
+﻿using System.Text.Json;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.Exceptions;
 
+namespace ShopManagementAPI.Middleware
+{
     public class GlobalExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -25,80 +25,94 @@
             }
         }
 
-        private static async Task HandleExceptionAsync(HttpContext context, Exception ex)
+        private static async Task HandleExceptionAsync(
+            HttpContext context,
+            Exception ex)
         {
             context.Response.ContentType = "application/json";
 
             int statusCode;
-            object response;
+            ErrorResponse response;
 
             switch (ex)
             {
-                //khi thiếu dữ liệu 
+                // Validation
                 case BadRequestException badRequestEx:
 
                     statusCode = StatusCodes.Status400BadRequest;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        errors = badRequestEx.Errors ?? new List<string>
-                {
-                    badRequestEx.Message
-                }
+                        StatusCode = statusCode,
+                        Code = "BAD_REQUEST",
+                        Message = badRequestEx.Message,
+                        Errors = badRequestEx.Errors
                     };
                     break;
-                    //không tìm thấy dữ liệu được nêu 
+
+                // Not Found
                 case NotFoundException:
 
                     statusCode = StatusCodes.Status404NotFound;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        message = ex.Message
+                        StatusCode = statusCode,
+                        Code = "NOT_FOUND",
+                        Message = ex.Message
                     };
                     break;
-                    //khi trùng ,xung đột dữ liệu add hay tìm kiếm 
+
+                // Conflict
                 case ConflictException:
 
                     statusCode = StatusCodes.Status409Conflict;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        message = ex.Message
+                        StatusCode = statusCode,
+                        Code = "CONFLICT",
+                        Message = ex.Message
                     };
                     break;
-                case UnauthorizedException://xác thực 
+
+                // Unauthorized
+                case UnauthorizedException:
+
                     statusCode = StatusCodes.Status401Unauthorized;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        message = ex.Message
+                        StatusCode = statusCode,
+                        Code = "UNAUTHORIZED",
+                        Message = ex.Message
                     };
                     break;
-                case ForbiddenException://phân quyền 
+
+                // Forbidden
+                case ForbiddenException:
+
                     statusCode = StatusCodes.Status403Forbidden;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        message = ex.Message
+                        StatusCode = statusCode,
+                        Code = "FORBIDDEN",
+                        Message = ex.Message
                     };
                     break;
 
-                //tạm thời 500 để lấy lỗi chính xác 
+                // Internal Server Error
                 default:
+
                     statusCode = StatusCodes.Status500InternalServerError;
 
-                    response = new
+                    response = new ErrorResponse
                     {
-                        status = statusCode,
-                        message = ex.Message
+                        StatusCode = statusCode,
+                        Code = "INTERNAL_SERVER_ERROR",
+                        Message = ex.Message
                     };
-
                     break;
             }
 

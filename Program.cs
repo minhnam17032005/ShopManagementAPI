@@ -83,15 +83,13 @@ builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<JwtAuthEvents>();
 
 // redis connection
-builder.Services.AddSingleton<JwtBlacklistService>();
 builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect(
         builder.Configuration["Redis:ConnectionString"]!
     )
 );
-// jwt blacklist
-
-// permission cache
+// Redis services :jwt blacklist --- permission cache
+builder.Services.AddSingleton<JwtBlacklistService>();
 builder.Services.AddScoped<PermissionCacheService>();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -153,6 +151,23 @@ if (runSeeder){
     var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await DbSeeder.SeedAsync(context);
 }
+
+// ===== WARM UP APP =====
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    Task.Run(async () =>
+    {
+        using var scope = app.Services.CreateScope();
+
+        var db = scope.ServiceProvider
+            .GetRequiredService<AppDbContext>();
+
+        await db.Database.CanConnectAsync();
+
+        // warm up EF Core
+        await db.Permissions.AnyAsync();
+    });
+});
 
 // ===== Middleware =====
 if (app.Environment.IsDevelopment()){

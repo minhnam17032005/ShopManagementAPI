@@ -6,6 +6,8 @@ using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.Extensions;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -24,90 +26,118 @@ namespace ShopManagementAPI.Controllers
         [Authorize]
         [RequirePermission(Permissions.CreateUser)]
         [HttpPost]
-        public async Task<ActionResult<UserResponseDTO>> Create([FromBody] CreateUserReqDTO dto)
+        public async Task<ActionResult<ApiResponse<UserResponseDTO>>> Create(
+    [FromBody] CreateUserReqDTO dto)
         {
             var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(
-                nameof(GetById),           
-                new { id = result.Id },
-                result
+
+            return this.ApiCreated(
+                result,
+                "Tạo người dùng thành công"
             );
         }
 
         [Authorize]
         [RequirePermission(Permissions.UpdateUserProfile)]
         [HttpPut("profile")]
-        public async Task<ActionResult<UserResponseDTO>> ChangeProfile( ChangeProfileReqDTO dto)
+        public async Task<ActionResult<ApiResponse<UserResponseDTO>>> ChangeProfile(
+            ChangeProfileReqDTO dto)
         {
             var result = await _service.ChangeProfileAsync(dto);
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Cập nhật thông tin cá nhân thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.AddUserRoles)]
         [HttpPost("{id}/roles")]
-        public async Task<ActionResult<UserResponseDTO>> AddRoles(
+        public async Task<ActionResult<ApiResponse<UserResponseDTO>>> AddRoles(
             int id,
             [FromBody] ChangeRolesReqDTO dto)
         {
-            var result = await _service.AddRolesAsync(id, dto.RoleIds);
+            var result = await _service.AddRolesAsync(
+                id,
+                dto.RoleIds);
 
-            return Ok(new
-            {
-                message = "Thêm vai trò cho người dùng thành công.",
-                data = result
-            });
+            return this.ApiOk(
+                result,
+                "Thêm vai trò cho người dùng thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.RemoveUserRoles)]
         [HttpDelete("{id}/roles")]
-        public async Task<ActionResult<UserResponseDTO>> RemoveRoles(
+        public async Task<ActionResult<ApiResponse<UserResponseDTO>>> RemoveRoles(
             int id,
             [FromBody] ChangeRolesReqDTO dto)
         {
-            var result = await _service.RemoveRolesAsync(id, dto.RoleIds);
+            var result = await _service.RemoveRolesAsync(
+                id,
+                dto.RoleIds);
 
-            return Ok(new {
-                message = "Xóa vai trò khỏi người dùng thành công.",
-                data = result
-            });
+            return this.ApiOk(
+                result,
+                "Xóa vai trò khỏi người dùng thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.GetUsers)]
         [HttpGet]
-        public async Task<ActionResult<List<UserResponseDTO>>> GetAll()
+        public async Task<ActionResult<ApiResponse<List<UserResponseDTO>>>> GetAll()
         {
             var result = await _service.GetAllAsync();
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Lấy danh sách người dùng thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.GetUserDetail)]
         [HttpGet("{id}")]
-        public async Task<ActionResult<UserResponseDTO>> GetById(int id)
+        public async Task<ActionResult<ApiResponse<UserResponseDTO>>> GetById(
+            int id)
         {
             var result = await _service.GetByIdAsync(id);
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Lấy chi tiết người dùng thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.LockUser)]
         [HttpPatch("{id}/lock")]
-        public async Task<ActionResult<StatusResponseDTO>> Lock(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Lock(
+            int id)
         {
-            var response = await _service.LockAsync(id);
-            return Ok(response);
+            var result = await _service.LockAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Khóa tài khoản thành công"
+            );
         }
 
         [Authorize]
         [RequirePermission(Permissions.UnlockUser)]
         [HttpPatch("{id}/unlock")]
-        public async Task<ActionResult<StatusResponseDTO>> Unlock(int id)
+        public async Task<ActionResult<ApiResponse<StatusResponseDTO>>> Unlock(
+            int id)
         {
-            var response = await _service.UnlockAsync(id);
-            return Ok(response);
+            var result = await _service.UnlockAsync(id);
+
+            return this.ApiOk(
+                result,
+                "Mở khóa tài khoản thành công"
+            );
         }
     }
 }

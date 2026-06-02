@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Exceptions;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.Extensions;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -27,9 +29,11 @@ namespace ShopManagementAPI.Controllers
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<ActionResult<LoginResponseDTO>> Login(LoginRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(
+    LoginRequestDTO dto)
         {
-            var (response, refreshToken) = await _authService.LoginAsync(dto);
+            var (response, refreshToken) =
+                await _authService.LoginAsync(dto);
 
             // set cookie
             Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
@@ -40,15 +44,20 @@ namespace ShopManagementAPI.Controllers
 
                 SameSite = SameSiteMode.Strict, // chỉ gửi cùng domain (chống CSRF)
 
-                Expires = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
+                Expires = DateTime.UtcNow.AddDays(
+                    int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
                 )
             });
-            return Ok(response);
+
+            return this.ApiOk(
+                response,
+                "Đăng nhập thành công"
+            );
         }
 
         [AllowAnonymous]
-        [HttpPost("refresh")]   
-        public async Task<ActionResult<RefreshResponseDTO>> Refresh()
+        [HttpPost("refresh")]
+        public async Task<ActionResult<ApiResponse<RefreshResponseDTO>>> Refresh()
         {
             // lấy refresh token từ cookie
             var refreshToken = Request.Cookies["refreshToken"];
@@ -57,7 +66,8 @@ namespace ShopManagementAPI.Controllers
                 throw new UnauthorizedException("Unauthorized");
 
             // gọi service
-            var (response, newRefreshToken) = await _authService.RefreshTokenAsync(refreshToken);
+            var (response, newRefreshToken) =
+                await _authService.RefreshTokenAsync(refreshToken);
 
             // set cookie mới
             Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
@@ -70,31 +80,41 @@ namespace ShopManagementAPI.Controllers
                 )
             });
 
-            return Ok(response);
+            return this.ApiOk(
+                response,
+                "Làm mới token thành công"
+            );
         }
 
         [AllowAnonymous]
         [HttpPost("register")]
-        public async Task<ActionResult<RegisterResponseDTO>> Register(RegisterRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<RegisterResponseDTO>>> Register(
+            RegisterRequestDTO dto)
         {
             var result = await _authService.RegisterAsync(dto);
 
-            return StatusCode(201, result);
+            return this.ApiCreated(
+                result,
+                "Đăng ký tài khoản thành công"
+            );
         }
 
         [Authorize]
         [HttpGet("me")]
-        public async Task<ActionResult<UserProfileResponseDTO>> GetProfile()
+        public async Task<ActionResult<ApiResponse<UserProfileResponseDTO>>> GetProfile()
         {
             var result = await _authService.GetProfileAsync();
-            return Ok(result);
+
+            return this.ApiOk(
+                result,
+                "Lấy thông tin cá nhân thành công"
+            );
         }
 
         [Authorize]
         [HttpPost("logout")]
-        public async Task<ActionResult<SuccessResponseDTO>> Logout()
+        public async Task<ActionResult<ApiResponse<object>>> Logout()
         {
-
             // lấy refresh token từ cookie
             var refreshToken = Request.Cookies["refreshToken"];
 
@@ -104,25 +124,23 @@ namespace ShopManagementAPI.Controllers
             // xóa refresh token trên cookie
             Response.Cookies.Delete("refreshToken");
 
-            return Ok(new
-            {
-                success = true,
-                message = "Đăng xuất thành công."
-            });
+            return this.ApiOk<object>(
+                null,
+                "Đăng xuất thành công"
+            );
         }
 
         [Authorize]
         [HttpPost("change-password")]
-        public async Task<ActionResult<SuccessResponseDTO>> ChangePassword(ChangePasswordRequestDTO request)
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword(
+            ChangePasswordRequestDTO request)
         {
-            await _authService.ChangePasswordAsync(
-                request
+            await _authService.ChangePasswordAsync(request);
+
+            return this.ApiOk<object>(
+                null,
+                "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."
             );
-            return Ok(new
-            {
-                success = true,
-                message = "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."
-            });
         }
     }
 }

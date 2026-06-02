@@ -1,5 +1,6 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json;
+using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Repositories;
 
@@ -46,13 +47,11 @@ namespace ShopManagementAPI.Middleware
                         context.Response.StatusCode =
                             StatusCodes.Status401Unauthorized;
 
-                        var response = new
+                        var response = new ErrorResponse
                         {
-                            success = false,
-                            statusCode = StatusCodes.Status401Unauthorized,
-                            code = "TOKEN_REVOKED",
-                            message = "Access token đã bị thu hồi",
-                            timestamp = DateTime.UtcNow
+                            StatusCode = StatusCodes.Status401Unauthorized,
+                            Code = "TOKEN_REVOKED",
+                            Message = "Access token đã bị thu hồi"
                         };
 
                         await context.Response.WriteAsync(
@@ -81,13 +80,11 @@ namespace ShopManagementAPI.Middleware
                         context.Response.StatusCode =
                             StatusCodes.Status401Unauthorized;
 
-                        var response = new
+                        var response = new ErrorResponse
                         {
-                            success = false,
-                            statusCode = StatusCodes.Status401Unauthorized,
-                            code = "USER_DISABLED",
-                            message = "Tài khoản đã bị khóa",
-                            timestamp = DateTime.UtcNow
+                            StatusCode = StatusCodes.Status401Unauthorized,
+                            Code = "USER_DISABLED",
+                            Message = "Tài khoản đã bị khóa"
                         };
 
                         await context.Response.WriteAsync(

@@ -277,8 +277,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = false,
-                Message = "User locked successfully"
+                IsActive = false
             };
         }
 
@@ -315,8 +314,7 @@ namespace ShopManagementAPI.Services
 
             return new StatusResponseDTO
             {
-                IsActive = true,
-                Message = "User unlocked successfully"
+                IsActive = true
             };
         }
         public static UserResponseDTO MapToDTO(User user)
