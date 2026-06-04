@@ -94,7 +94,7 @@ namespace ShopManagementAPI.Repositories
                 .FirstOrDefaultAsync(x => x.RefreshToken == refreshToken);
         }
 
-        //lấy user kèm toàn bộ quyền của user
+        // lấy user kèm toàn bộ quyền của user
         public async Task<User?> GetUserWithRolesAndPermissionsAsync(int userId)
         {
             return await _context.Users

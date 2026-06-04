@@ -27,12 +27,11 @@ namespace ShopManagementAPI.Services
         public async Task<PermissionResponseDTO> GetByIdAsync(int id)
         {
             var permission = await _repo.GetByIdAsync(id)
-                ?? throw new NotFoundException("Permission not found");
+                ?? throw new NotFoundException("Không tìm thấy quyền");
 
             return MapToDTO(permission);
         }
 
-        // MAPPING RIÊNG
         private static PermissionResponseDTO MapToDTO(Permission p)
         {
             return new PermissionResponseDTO

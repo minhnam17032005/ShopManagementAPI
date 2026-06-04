@@ -23,31 +23,32 @@ namespace ShopManagementAPI.Middleware
             PermissionCacheService permissionCacheService
         )
         {
-            //lấy ra endpoint 
+            // lấy endpoint của request hiện tại
             var endpoint = context.GetEndpoint();
-
+            
+            // lấy attribute RequirePermission nếu có gắn trên API
             var permissionAttribute =
                 endpoint?.Metadata
                     .GetMetadata<RequirePermissionAttribute>();
 
-            // api không cần permission
+            // nếu API không yêu cầu quyền → bỏ qua check
             if (permissionAttribute == null)
             {
                 await _next(context);
                 return;
             }
 
-            // lấy permissions từ cache service
+            // lấy danh sách quyền của user từ cache
             var permissions =
                 await permissionCacheService
                     .GetPermissionsAsync(currentUser.UserId);
 
-            // check permission
+            // kiểm tra permission của user 
             var hasPermission = permissions.Contains(
                     permissionAttribute.Permission
                 );
 
-            // không có quyền
+            // nếu không có quyền → trả về 403
             if (!hasPermission)
             {
                 context.Response.ContentType = "application/json";

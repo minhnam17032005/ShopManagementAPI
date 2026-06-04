@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using ShopManagementAPI.DTOs.Common;
 
 namespace ShopManagementAPI.Jwt
 {
@@ -11,8 +12,12 @@ namespace ShopManagementAPI.Jwt
         {
             context.NoResult();
 
+            // đánh dấu đã xử lý lỗi authentication
+            context.HttpContext.Items["AuthFailed"] = true;
+
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.StatusCode =
+                StatusCodes.Status401Unauthorized;
 
             string code = "TOKEN_INVALID";
             string message = "Access token không hợp lệ";
@@ -25,7 +30,9 @@ namespace ShopManagementAPI.Jwt
             }
 
             // INVALID SIGNATURE
-            else if (context.Exception is SecurityTokenInvalidSignatureException)
+            else if (
+                context.Exception
+                is SecurityTokenInvalidSignatureException)
             {
                 code = "INVALID_SIGNATURE";
                 message = "Chữ ký token không hợp lệ";
@@ -41,24 +48,26 @@ namespace ShopManagementAPI.Jwt
                 message = "Token không đúng định dạng";
             }
 
-            var response = new
+            var response = new ErrorResponse
             {
-                success = false,
-                statusCode = StatusCodes.Status401Unauthorized,
-                code,
-                message,
-                timestamp = DateTime.UtcNow
+                StatusCode = StatusCodes.Status401Unauthorized,
+                Code = code,
+                Message = message
             };
 
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response)
-            );
+            await context.Response.WriteAsJsonAsync(response);
         }
 
         // NO TOKEN
         public override async Task Challenge(JwtBearerChallengeContext context)
         {
-            // tránh ghi đè response nếu AuthenticationFailed đã xử lý
+            // AuthenticationFailed đã xử lý rồi
+            if (context.HttpContext.Items.ContainsKey("AuthFailed"))
+            {
+                return;
+            }
+
+            // response đã được ghi trước đó
             if (context.Response.HasStarted)
             {
                 return;
@@ -67,20 +76,17 @@ namespace ShopManagementAPI.Jwt
             context.HandleResponse();
 
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.StatusCode =
+                StatusCodes.Status401Unauthorized;
 
-            var response = new
+            var response = new ErrorResponse
             {
-                success = false,
-                statusCode = StatusCodes.Status401Unauthorized,
-                code = "TOKEN_MISSING",
-                message = "Vui lòng đăng nhập",
-                timestamp = DateTime.UtcNow
+                StatusCode = StatusCodes.Status401Unauthorized,
+                Code = "TOKEN_MISSING",
+                Message = "Vui lòng đăng nhập"
             };
 
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response)
-            );
+            await context.Response.WriteAsJsonAsync(response);
         }
     }
 }

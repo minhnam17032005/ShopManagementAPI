@@ -21,43 +21,42 @@ namespace ShopManagementAPI.Services
 
         public async Task<CategoryResponseDTO> CreateAsync(CategoryRequestDTO dto)
         {
-            // 1. check trùng name
+            // kiểm tra trùng tên category
             if (await _repoCategory.ExistsByNameAsync(dto.Name))
-                throw new ConflictException("Category name already exists");
+                throw new ConflictException("Tên danh mục đã tồn tại");
 
-            // 2. tạo entity
+            // tạo category mới
             var category = new Category
             {
                 Name = dto.Name,
                 Description = dto.Description
             };
 
-            // 3. lưu DB
+            // lưu database
             await _repoCategory.AddAsync(category);
             await _repoCategory.SaveChangesAsync();
 
-            // 4. trả về DTO
             return MapToDTO(category);
         }
 
         public async Task<CategoryResponseDTO> UpdateAsync(int id, CategoryRequestDTO dto)
         {
-            // 1. tìm category
+            // tìm category theo id
             var category = await _repoCategory.GetByIdAsync(id)
-                ?? throw new NotFoundException("Category not found");
+                ?? throw new NotFoundException("Không tìm thấy danh mục");
             if (!category.IsActive)
                 throw new ConflictException("Danh mục đã ngừng hoạt động.");
 
-            // 2. check trùng name (trừ chính nó)
+            // kiểm tra trạng thái hoạt động
             if (await _repoCategory.ExistsByNameExcludeIdAsync(dto.Name, id))
-                throw new ConflictException("Category name already exists");
+                throw new ConflictException("Tên danh mục đã tồn tại");
 
-            // 3. update dữ liệu
+            // kiểm tra trùng tên (loại trừ chính nó)
             category.Name = dto.Name;
             category.Description = dto.Description;
             category.UpdatedAt = DateTime.UtcNow;
 
-            // 4. lưu DB
+            // lưu thay đổi 
             _repoCategory.Update(category);
             await _repoCategory.SaveChangesAsync();
 
@@ -76,9 +75,9 @@ namespace ShopManagementAPI.Services
         public async Task<CategoryResponseDTO> GetByIdAsync(int id)
         {
             var category = await _repoCategory.GetByIdAsync(id)
-                ?? throw new NotFoundException("Category not found");
+                ?? throw new NotFoundException("Không tìm thấy danh mục");
             if (!category.IsActive)
-                throw new NotFoundException("Category not found");
+                throw new NotFoundException("Không tìm thấy danh mục");
 
             return MapToDTO(category);
         }
@@ -86,14 +85,16 @@ namespace ShopManagementAPI.Services
         public async Task<StatusResponseDTO> DeleteAsync(int id)
         {
             var category = await _repoCategory.GetByIdAsync(id)
-                ?? throw new NotFoundException("Category not found");
+                ?? throw new NotFoundException("Không tìm thấy danh mục");
 
+            // kiểm tra còn sản phẩm active không
             var hasProducts = await _repoProduct.HasActiveProductsAsync(id);
 
             if (hasProducts)
                 throw new ConflictException(
                     "Danh mục đang chứa sản phẩm hoạt động nên không thể ngừng hoạt động.");
 
+            // soft delete (disable category)
             category.IsActive = false;
             category.UpdatedAt = DateTime.UtcNow;
 
@@ -108,11 +109,13 @@ namespace ShopManagementAPI.Services
         public async Task<StatusResponseDTO> RestoreAsync(int id)
         {
             var category = await _repoCategory.GetByIdAsync(id)
-                ?? throw new NotFoundException("Category not found");
+                ?? throw new NotFoundException("Không tìm thấy danh mục");
 
+            // nếu đang active rồi
             if (category.IsActive)
-                throw new ConflictException("Danh mục đang hoạt động.");
+                throw new ConflictException("Không tìm thấy danh mục");
 
+            // kích hoạt lại category
             category.IsActive = true;
             category.UpdatedAt = DateTime.UtcNow;
 
@@ -124,7 +127,6 @@ namespace ShopManagementAPI.Services
             };
         }
 
-        // helper mapping
         private static CategoryResponseDTO MapToDTO(Category c)
         {
             return new CategoryResponseDTO

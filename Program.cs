@@ -153,6 +153,7 @@ if (runSeeder){
 }
 
 // ===== WARM UP APP =====
+// Khởi tạo sẵn SQL Server, EF Core và Redis khi app startup giúp giảm độ trễ request đầu tiên .
 app.Lifetime.ApplicationStarted.Register(() =>
 {
     Task.Run(async () =>
@@ -162,10 +163,15 @@ app.Lifetime.ApplicationStarted.Register(() =>
         var db = scope.ServiceProvider
             .GetRequiredService<AppDbContext>();
 
-        await db.Database.CanConnectAsync();
+        var redis = scope.ServiceProvider
+            .GetRequiredService<IConnectionMultiplexer>();
 
-        // warm up EF Core
+        //SQL + build EF Core model/query cache
+        await db.Database.CanConnectAsync();
         await db.Permissions.AnyAsync();
+
+        //Redis
+        await redis.GetDatabase().PingAsync();
     });
 });
 

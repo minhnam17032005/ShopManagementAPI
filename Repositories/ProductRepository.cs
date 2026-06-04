@@ -13,21 +13,20 @@ namespace ShopManagementAPI.Repositories
             _context = context;
         }
 
-        // lấy category theo id
         public async Task<Category?> GetCategoryByIdAsync(int categoryId)
         {
             return await _context.Categories
                 .FirstOrDefaultAsync(c => c.Id == categoryId);
         }
 
-        // check trùng product trong category
+        // kiểm tra product đã tồn tại trong cùng category chưa
         public async Task<bool> ExistsInCategoryAsync(string name, int categoryId)
         {
             return await _context.Products
                 .AnyAsync(p => p.Name == name && p.CategoryId == categoryId);
         }
 
-        // check trùng khi update
+        // kiểm tra trùng khi update (loại trừ chính nó)
         public async Task<bool> ExistsInCategoryExcludeIdAsync(int id, string name, int categoryId)
         {
             return await _context.Products

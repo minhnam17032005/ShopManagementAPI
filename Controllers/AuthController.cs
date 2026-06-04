@@ -29,8 +29,7 @@ namespace ShopManagementAPI.Controllers
 
         [AllowAnonymous]
         [HttpPost("login")]
-        public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(
-    LoginRequestDTO dto)
+        public async Task<ActionResult<ApiResponse<LoginResponseDTO>>> Login(LoginRequestDTO dto)
         {
             var (response, refreshToken) =
                 await _authService.LoginAsync(dto);
@@ -63,13 +62,13 @@ namespace ShopManagementAPI.Controllers
             var refreshToken = Request.Cookies["refreshToken"];
 
             if (string.IsNullOrEmpty(refreshToken))
-                throw new UnauthorizedException("Unauthorized");
+                throw new UnauthorizedException("Refresh token không tồn tại hoặc đã bị xóa");
 
             // gọi service
             var (response, newRefreshToken) =
                 await _authService.RefreshTokenAsync(refreshToken);
 
-            // set cookie mới
+            // set refresh token mới vào cookie 
             Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
             {
                 HttpOnly = true,

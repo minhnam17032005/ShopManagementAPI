@@ -67,7 +67,7 @@ namespace ShopManagementAPI.Data
             // =========================
             // 2. Role - Permission (N - N  RolePermission)
             // =========================
-            //Set Primary key cho RolePermission
+            //Set Primary key cho RolePermission là cả roleid và permissionid 
             modelBuilder.Entity<RolePermission>()
                 .HasKey(rp => new { rp.RoleId, rp.PermissionId });
 

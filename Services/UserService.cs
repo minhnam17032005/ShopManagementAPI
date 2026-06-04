@@ -39,35 +39,42 @@ namespace ShopManagementAPI.Services
 
         public async Task<UserResponseDTO> CreateAsync(CreateUserReqDTO dto)
         {
-            // check username
+            // kiểm tra username đã tồn tại
             if (await _repoUser.IsUsernameExists(dto.Username))
-                throw new ConflictException("Username already exists");
-            // check email
-            if (await _repoUser.IsEmailExists(dto.Email))
-                throw new ConflictException("Email already exists");
-            // check roleIds null / empty
-            if (dto.RoleIds == null || !dto.RoleIds.Any())
-                throw new BadRequestException("RoleIds is required");
+                throw new ConflictException("Tên đăng nhập đã tồn tại");
 
-            // validate roles
+            // kiểm tra email đã tồn tại
+            if (await _repoUser.IsEmailExists(dto.Email))
+                throw new ConflictException("Email đã tồn tại");
+
+            // kiểm tra danh sách role
+            if (dto.RoleIds == null || !dto.RoleIds.Any())
+                throw new BadRequestException("Danh sách RoleIds không được để trống");
+
+            // lấy roles từ DB
             var errors = new List<string>();
 
+            // xử lý role trùng lặp
             var roleIds = dto.RoleIds.Distinct().ToList();
 
             var roles = await _repoRole.GetRolesByIdsAsync(roleIds);
             var foundIds = roles.Select(x => x.Id).ToHashSet();
-            
+
             //custom errors list
             foreach (var roleId in roleIds)
             {
                 var role = roles.FirstOrDefault(x => x.Id == roleId);
-                if (role == null){
-                    errors.Add($"RoleId {roleId} not found");
+
+                // không tìm thấy role
+                if (role == null)
+                {
+                    errors.Add($"Không tìm thấy RoleId {roleId}");
                     continue;
                 }
-
-                if (role.Name == RoleType.ADMIN){
-                    errors.Add($"RoleId {roleId} is ADMIN and cannot be assigned");
+                // không cho phép gán ADMIN
+                if (role.Name == RoleType.ADMIN)
+                {
+                    errors.Add($"RoleId {roleId} là ADMIN và không thể gán");
                 }
             }
             if (errors.Any())
@@ -92,11 +99,9 @@ namespace ShopManagementAPI.Services
             await _repoUser.AddAsync(user);
             await _repoUser.SaveAsync();
 
-            // map response
             return MapToDTO(user);
         }
 
-        //update profile or fullname
         public async Task<UserResponseDTO> ChangeProfileAsync(ChangeProfileReqDTO dto)
         {
             var userId = _currentUserService.UserId;
@@ -104,8 +109,9 @@ namespace ShopManagementAPI.Services
             var user = await _repoUser.GetByIdWithRolesAsync(userId);
 
             if (user == null)
-                throw new NotFoundException("User not found");
+                throw new NotFoundException("Không tìm thấy người dùng");
 
+            // cập nhật profile
             user.FullName = dto.FullName;
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -116,18 +122,20 @@ namespace ShopManagementAPI.Services
 
         public async Task<UserResponseDTO> AddRolesAsync(int userId, List<int> roleIds)
         {
-            //vallidate
+            // tìm user
             var user = await _repoUser.GetByIdWithRolesAsync(userId)
                 ?? throw new NotFoundException("Không tìm thấy người dùng.");
 
+            // validate roleIds
             var newRoleIds = roleIds?.Distinct().ToList()
                 ?? throw new BadRequestException("Danh sách vai trò không được để trống.");
 
             var roles = await _repoRole.GetRolesByIdsAsync(newRoleIds);
             var roleDict = roles.ToDictionary(x => x.Id);
 
-            //errors list
+            // build errors list
             var errors = new List<string>();
+
             // role không tồn tại
             errors.AddRange(newRoleIds
                 .Where(id => !roleDict.ContainsKey(id))
@@ -140,6 +148,7 @@ namespace ShopManagementAPI.Services
             if (errors.Any())
                 throw new BadRequestException(errors);
 
+            // lấy role chưa có
             var currentIds = user.UserRoles.Select(x => x.RoleId).ToList();
             var addIds = newRoleIds.Except(currentIds).ToList();
 
@@ -155,8 +164,7 @@ namespace ShopManagementAPI.Services
 
             await _repoUser.SaveAsync();
             // role user thay đổi -> clear permission cache
-            await _permissionCacheService
-                .RemovePermissionsAsync(userId);
+            await _permissionCacheService.RemovePermissionsAsync(userId);
 
             return MapToDTO(user);
         }
@@ -169,7 +177,7 @@ namespace ShopManagementAPI.Services
             var removeIds = roleIds?.Distinct().ToList()
                 ?? throw new BadRequestException("Danh sách vai trò không được để trống.");
 
-            //check tồn tại
+            // check tồn tại lấy roles cần xóa
             var existingRoles = user.UserRoles
                 .Where(x => removeIds.Contains(x.RoleId))
                 .ToList();
@@ -195,12 +203,14 @@ namespace ShopManagementAPI.Services
 
         public async Task<List<UserResponseDTO>> GetAllAsync()
         {
+            // lấy role hiện tại của user
             var currentUserRoles = _currentUserService.Roles
                 .Select(r => Enum.Parse<RoleType>(r))
                 .ToList();
 
             var query = _repoUser.Query();
 
+            // filter theo data scope
             query = _userDataScopeService
                 .FilterUsers(query, currentUserRoles);
 
@@ -212,22 +222,22 @@ namespace ShopManagementAPI.Services
         }
 
         public async Task<UserResponseDTO> GetByIdAsync(int id)
-        {
+        {   
+            // lấy role hiện tại
             var user = await _repoUser.GetByIdWithRolesAsync(id);
 
             if (user == null)
-                throw new NotFoundException("User not found");
+                throw new NotFoundException("Không tìm thấy người dùng");
 
+            // lấy danh sách role của user hiện tại
             var currentRoles = _currentUserService.Roles
                 .Select(r => Enum.Parse<RoleType>(r))
                 .ToList();
 
-            if (!_userDataScopeService.CanViewUser(
-                    currentRoles,
-                    user))
+            // kiểm tra quyền xem user
+            if (!_userDataScopeService.CanViewUser(currentRoles, user))
             {
-                throw new ForbiddenException(
-                    "You do not have permission to view this user");
+                throw new ForbiddenException("Bạn không có quyền xem người dùng này");
             }
 
             return MapToDTO(user);
@@ -235,38 +245,37 @@ namespace ShopManagementAPI.Services
 
         public async Task<StatusResponseDTO> LockAsync(int id)
         {
+            // kiểm tra quyền lock user
             var user = await _repoUser.GetByIdWithRolesAsync(id);
 
             if (user == null)
-                throw new NotFoundException("User not found");
+                throw new NotFoundException("Không tìm thấy người dùng");
 
             var currentRoles = _currentUserService.Roles
                 .Select(r => Enum.Parse<RoleType>(r))
                 .ToList();
 
-            if (!_userDataScopeService.CanManageUser(
-                    currentRoles,
-                    user))
+            // kiểm tra quyền khóa user
+            if (!_userDataScopeService.CanManageUser(currentRoles, user))
             {
-                throw new ForbiddenException(
-                    "You do not have permission to lock this user");
+                throw new ForbiddenException("Bạn không có quyền khóa người dùng này");
             }
 
             if (!user.IsActive)
-                throw new BadRequestException(
-                    "Tài khoản đã bị khóa.");
+                throw new BadRequestException("Tài khoản đã bị khóa.");
 
+            // không cho tự khóa chính mình
             if (user.Id == _currentUserService.UserId)
-                throw new BadRequestException(
-                    "Không thể tự khóa tài khoản của chính mình.");
+                throw new BadRequestException("Không thể tự khóa tài khoản của chính mình.");
 
+            // kiểm tra đơn hàng đang xử lý
             var hasPendingOrders =
                 await _repoOrder.AnyPendingByUserIdAsync(id);
 
             if (hasPendingOrders)
-                throw new ConflictException(
-                    "Người dùng đang có đơn hàng chờ xử lý nên không thể khóa.");
+                throw new ConflictException("Người dùng đang có đơn hàng chờ xử lý nên không thể khóa.");
 
+            // khóa user
             user.IsActive = false;
             user.UpdatedAt = DateTime.UtcNow;
 
@@ -285,25 +294,24 @@ namespace ShopManagementAPI.Services
         {
             var user = await _repoUser.GetByIdWithRolesAsync(id);
 
+            // kiểm tra user tồn tại
             if (user == null)
-                throw new NotFoundException("User not found");
+                throw new NotFoundException("Không tìm thấy người dùng");
 
+            // lấy role của user hiện tại
             var currentRoles = _currentUserService.Roles
                 .Select(r => Enum.Parse<RoleType>(r))
                 .ToList();
 
-            if (!_userDataScopeService.CanManageUser(
-                    currentRoles,
-                    user))
+            // kiểm tra quyền mở khóa user
+            if (!_userDataScopeService.CanManageUser(currentRoles, user))
             {
-                throw new ForbiddenException(
-                    "You do not have permission to unlock this user");
+                throw new ForbiddenException("Bạn không có quyền mở khóa người dùng này");
             }
 
             if (user.IsActive)
-                throw new BadRequestException(
-                    "Tài khoản đang hoạt động.");
-                
+                throw new BadRequestException("Tài khoản đang hoạt động.");
+
             user.IsActive = true;
             user.UpdatedAt = DateTime.UtcNow;
 

@@ -35,23 +35,25 @@ namespace ShopManagementAPI.Services
         }
         public async Task<(LoginResponseDTO response, string refreshToken)> LoginAsync(LoginRequestDTO dto)
         {
-            //check login và so sánh password 
+            // kiểm tra username + password
             var user = await _repoUser.GetByUsernameWithRolesAsync(dto.Username);
             bool isValid = BCrypt.Net.BCrypt.Verify(dto.Password,user.PasswordHash);
 
             if (user == null||!isValid)
                 throw new UnauthorizedException("Username hoặc password không hợp lệ");
-            
-            // check account lock 
+
+            // kiểm tra tài khoản bị khóa
             if (!user.IsActive)
                 throw new UnauthorizedException("Tài khoản đã bị khóa.");
 
-            //lấy ra access token
+            // tạo access token
             var token = _jwtService.GenerateAccessToken(user);
 
-            // tạo và gán refresh token
+            // tạo refresh token
             var refreshToken = _jwtService.GenerateRefreshToken();
             user.RefreshToken = refreshToken;
+
+            // set thời gian hết hạn refresh token
             user.RefreshTokenExpiredAt = DateTime.UtcNow.AddDays(
                 int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
             );
@@ -73,7 +75,7 @@ namespace ShopManagementAPI.Services
                 AccessToken = token
             };
 
-            //trả ra LoginResponseDTO và refreshToken cho controller 
+            //trả ra LoginResponseDTO và refreshToken
             return (response, refreshToken);
         }
 
@@ -99,6 +101,7 @@ namespace ShopManagementAPI.Services
 
             user.RefreshToken = newRefreshToken;
 
+            // cập nhật hạn refresh token
             user.RefreshTokenExpiredAt = DateTime.UtcNow.AddDays(
                 int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
             );
@@ -111,18 +114,20 @@ namespace ShopManagementAPI.Services
 
         public async Task<RegisterResponseDTO> RegisterAsync(RegisterRequestDTO dto)
         {
+            // check username đã tồn tại
             var existsUsername = await _repoUser.IsUsernameExists(dto.Username);
             if (existsUsername)
-                throw new ConflictException("Username already exists");
+                throw new ConflictException("Tên đăng nhập đã tồn tại");
 
+            // check email đã tồn tại
             var existsEmail = await _repoUser.IsEmailExists(dto.Email);
             if (existsEmail)
-                throw new ConflictException("Email already exists");
+                throw new ConflictException("Email đã tồn tại");
 
-            //mặc định role khi đăng ký là CUSTOMER
+            // lấy role mặc định CUSTOMER khi đăng ký 
             var customerRole = await _repoRole.GetByNameAsync(RoleType.CUSTOMER);
             if (customerRole == null)
-                throw new NotFoundException("Default role CUSTOMER not found");
+                throw new NotFoundException("Không tìm thấy role mặc định CUSTOMER");
 
             var user = new User
             {
@@ -154,15 +159,16 @@ namespace ShopManagementAPI.Services
 
         public async Task<UserProfileResponseDTO> GetProfileAsync()
         {
-            // lấy userId từ JWT
+            // lấy userId từ token
             var userId = _currentUser.UserId;
 
-            // query DB lấy dữ liệu user ,roles và permissions
+            // lấy user + roles
             var user = await _repoUser.GetByIdWithRolesAsync(userId);
-            var permissions = await _repoUser
-                            .GetPermissionNamesAsync(userId);
 
-            // token cũ / user bị xóa / user bị khóa
+            // lấy permissions
+            var permissions = await _repoUser.GetPermissionNamesAsync(userId);
+
+            // kiểm tra user hợp lệ
             if (user == null || !user.IsActive)
             {
                 throw new UnauthorizedException("Phiên đăng nhập không hợp lệ hoặc tài khoản đã bị khóa.");
@@ -188,26 +194,11 @@ namespace ShopManagementAPI.Services
 
         public async Task LogoutAsync(string? refreshToken)
         {
-            // blacklist access token
-            /*if (!string.IsNullOrEmpty(jti) &&
-                !string.IsNullOrEmpty(expClaim))
-            {
-                var expUnix = long.TryParse(expClaim);
-
-                var expiredAt = DateTimeOffset
-                    .FromUnixTimeSeconds(expUnix)
-                    .UtcDateTime;
-
-                var ttl = expiredAt - DateTime.UtcNow;
-
-                if (ttl > TimeSpan.Zero){
-                    await _jwtBlacklist.BlacklistTokenAsync(jti, ttl);
-                }
-            }*/
-            //jti và expClaim lấy từ CurrentUser
+            // lấy jti và exp từ token
             var jti = _currentUser.Jti;
             var expClaim = _currentUser.ExpiredAtString;
 
+            // blacklist access token nếu còn hạn
             if (long.TryParse(expClaim, out var expUnix))
             {
                 var expiredAt = DateTimeOffset
@@ -223,7 +214,7 @@ namespace ShopManagementAPI.Services
                 }
             }
 
-            // remove refresh token
+            // xóa refresh token nếu có
             if (!string.IsNullOrEmpty(refreshToken))
             {
                 var user = await _repoUser
@@ -243,66 +234,65 @@ namespace ShopManagementAPI.Services
         {
             // lấy user id từ token
             var userId = _currentUser.UserId;
-            // lấy jti access token
+
+            // lấy jti + exp token
             var jti = _currentUser.Jti;
-            // lấy ExpiredAt 
+
             var expClaim = _currentUser.ExpiredAtString;
 
             var user = await _repoUser.GetByIdAsync(userId) 
-                ?? throw new NotFoundException(
-                        "Người dùng không tồn tại."
+                ?? throw new NotFoundException("Người dùng không tồn tại."
                     );
 
-            // check mật khẩu cũ
+            // kiểm tra mật khẩu hiện tại
             bool isCorrectPassword = BCrypt.Net.BCrypt.Verify(
                 request.CurrentPassword,
                 user.PasswordHash
             );
+
             if (!isCorrectPassword)
             {
-                throw new BadRequestException(
-                    "Mật khẩu hiện tại không đúng"
+                throw new BadRequestException("Mật khẩu hiện tại không đúng"
                 );
             }
-            // check xác nhận password
             if (request.NewPassword != request.ConfirmPassword)
             {
-                throw new BadRequestException(
-                    "Xác nhận mật khẩu không khớp"
+                throw new BadRequestException("Xác nhận mật khẩu không khớp"
                 );
             }
 
-            // check password mới khác password cũ
+            // kiểm tra mật khẩu mới không trùng cũ
             bool isSameOldPassword = BCrypt.Net.BCrypt.Verify(
                 request.NewPassword,
                 user.PasswordHash
             );
             if (isSameOldPassword)
             {
-                throw new BadRequestException(
-                    "Mật khẩu mới không được trùng mật khẩu cũ"
+                throw new BadRequestException("Mật khẩu mới không được trùng mật khẩu cũ"
                 );
             }
 
-            // hash password mới
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(
-                request.NewPassword
-            );
+            // cập nhật password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
             // revoke refresh token
             user.RefreshToken = null;
             user.RefreshTokenExpiredAt = null;
             
             await _repoUser.SaveAsync();
-            // blacklist access token hiện tại
+
+            // blacklist access token hiện tại nếu còn hạn
             if (long.TryParse(expClaim, out var expUnix))
             {
+                // convert exp (unix time) sang datetime
                 var expiredAt = DateTimeOffset
                     .FromUnixTimeSeconds(expUnix)
                     .UtcDateTime;
+
+                // tính thời gian còn lại của token
                 var ttl = expiredAt - DateTime.UtcNow;
-                
-                // token vẫn còn hạn mới blacklist
+
+                // chỉ blacklist nếu token chưa hết hạn
                 if (ttl > TimeSpan.Zero)
                 {
                     await _jwtBlacklist.BlacklistTokenAsync(

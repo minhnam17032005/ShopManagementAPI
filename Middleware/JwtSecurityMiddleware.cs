@@ -24,16 +24,17 @@ namespace ShopManagementAPI.Middleware
         )
         {
 
-            // chỉ check nếu đã authenticate
+            // chỉ xử lý khi user đã đăng nhập thành công
             if (context.User.Identity?.IsAuthenticated == true)
             {
                 // =========================
-                // CHECK TOKEN REVOKED
+                // kiểm tra token bị thu hồi (blacklist)
                 // =========================
+
                 // lấy jti từ access token
                 var jti = currentUser.Jti;
 
-                // nếu có jti thì check blacklist
+                // nếu có jti thì kiểm tra blacklist
                 if (!string.IsNullOrEmpty(jti))
                 {
                     var isBlacklisted =
@@ -72,7 +73,7 @@ namespace ShopManagementAPI.Middleware
                     var user =
                         await userRepository.GetByIdAsync(userIdClaim);
 
-                    // user bị khóa
+                    // user đã bị khóa
                     if (user != null && !user.IsActive)
                     {
                         context.Response.ContentType = "application/json";

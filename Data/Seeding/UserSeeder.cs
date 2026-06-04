@@ -10,16 +10,19 @@ namespace ShopManagementAPI.Data.Seeding
         public static async Task SeedAsync(AppDbContext context)
         {
             var adminRole = await context.Roles.FirstAsync(x => x.Name == RoleType.ADMIN);
-
-            var exists = await context.Users.AnyAsync(x => x.Username == "nam");
-            if (exists) return;
+            
+            //check xem đã có admin ch
+            var hasAdmin = await context.Users
+            .AnyAsync(x => x.UserRoles.Any(ur => ur.Role.Name == RoleType.ADMIN));
+            if (hasAdmin)
+                return;
 
             var user = new User
             {
-                Username = "Nam",
+                Username = "admin",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"),
-                FullName = "Nguyen Minh Nam",
-                Email = "namcoder2005@gmail.com",
+                FullName = "Super admin",
+                Email = "admin2005@gmail.com",
                 IsActive = true,
                 UserRoles = new List<UserRole>
         {

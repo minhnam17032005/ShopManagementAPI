@@ -25,10 +25,14 @@ namespace ShopManagementAPI.Middleware
             }
         }
 
-        private static async Task HandleExceptionAsync(
-            HttpContext context,
-            Exception ex)
+        private static async Task HandleExceptionAsync(HttpContext context,Exception ex)
         {
+            // response đã được ghi trước đó
+            if (context.Response.HasStarted)
+            {
+                return;
+            }
+            context.Response.Clear();
             context.Response.ContentType = "application/json";
 
             int statusCode;
@@ -36,7 +40,7 @@ namespace ShopManagementAPI.Middleware
 
             switch (ex)
             {
-                // Validation
+                // 400 : lỗi validate dữ liệu đầu vào
                 case BadRequestException badRequestEx:
 
                     statusCode = StatusCodes.Status400BadRequest;
@@ -50,7 +54,7 @@ namespace ShopManagementAPI.Middleware
                     };
                     break;
 
-                // Not Found
+                // 404 : không tìm thấy dữ liệu
                 case NotFoundException:
 
                     statusCode = StatusCodes.Status404NotFound;
@@ -63,7 +67,7 @@ namespace ShopManagementAPI.Middleware
                     };
                     break;
 
-                // Conflict
+                // 409 : xung đột dữ liệu
                 case ConflictException:
 
                     statusCode = StatusCodes.Status409Conflict;
@@ -76,7 +80,7 @@ namespace ShopManagementAPI.Middleware
                     };
                     break;
 
-                // Unauthorized
+                // 401 : chưa đăng nhập / sai token
                 case UnauthorizedException:
 
                     statusCode = StatusCodes.Status401Unauthorized;
@@ -89,7 +93,7 @@ namespace ShopManagementAPI.Middleware
                     };
                     break;
 
-                // Forbidden
+                // 403 : không có quyền truy cập
                 case ForbiddenException:
 
                     statusCode = StatusCodes.Status403Forbidden;
@@ -102,7 +106,7 @@ namespace ShopManagementAPI.Middleware
                     };
                     break;
 
-                // Internal Server Error
+                // 500 : lỗi hệ thống
                 default:
 
                     statusCode = StatusCodes.Status500InternalServerError;
@@ -118,9 +122,7 @@ namespace ShopManagementAPI.Middleware
 
             context.Response.StatusCode = statusCode;
 
-            var json = JsonSerializer.Serialize(response);
-
-            await context.Response.WriteAsync(json);
+            await context.Response.WriteAsJsonAsync(response);
         }
     }
 }

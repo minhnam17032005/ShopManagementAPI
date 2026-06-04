@@ -17,16 +17,15 @@ namespace ShopManagementAPI.Jwt
             _config = config;
         }
 
-        //access token 
         public string GenerateAccessToken(User user)
         {
-            //tạo private key lấy từ config 
+            // JWT signing key từ config
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
 
-            //cấu hình jwt 
+            // Signing credentials (HMAC SHA256)
             var creds = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
 
-            // lấy roles từ UserRoles
+            // Lấy danh sách role của user
             var roleNames = user.UserRoles
                 .Select(x => x.Role.Name.ToString())
                 .Distinct()
@@ -34,19 +33,19 @@ namespace ShopManagementAPI.Jwt
 
             var claims = new List<Claim>
             {
-                // user info
+                // Thông tin user
                 new Claim("userId", user.Id.ToString()),
                 new Claim("username", user.Username),
 
-                //lưu ý cần được cấu hình và sử dụng
+                // Token ID (unique)
                 new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()),
-                //thời điểm tạo accesstoken
+                // Thời gian tạo token
                 new Claim(JwtRegisteredClaimNames.Iat,DateTimeOffset.UtcNow
                         .ToUnixTimeSeconds()
                         .ToString(),
                     ClaimValueTypes.Integer64)
             };
-            // roles
+            // Gán roles vào token
             foreach (var role in roleNames)
             {
                 claims.Add(
@@ -54,7 +53,7 @@ namespace ShopManagementAPI.Jwt
                 );
             }
 
-            //thời gian hết hạn access token
+            // Thời gian hết hạn token
             var expires = DateTime.UtcNow.AddMinutes(
                 int.Parse(_config["Jwt:AccessTokenExpirationMinutes"]!)
             );
@@ -71,9 +70,9 @@ namespace ShopManagementAPI.Jwt
                 .WriteToken(token);
         }
 
-        //refresh token dùng random string 
         public string GenerateRefreshToken()
         {
+            // Random 64-byte token
             var randomBytes = new byte[64];
 
             using (var rng = RandomNumberGenerator.Create())
@@ -81,6 +80,7 @@ namespace ShopManagementAPI.Jwt
                 rng.GetBytes(randomBytes);
             }
 
+            // Encode sang Base64
             return Convert.ToBase64String(randomBytes);
         }
     }

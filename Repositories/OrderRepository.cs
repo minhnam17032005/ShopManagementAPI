@@ -71,14 +71,14 @@ namespace ShopManagementAPI.Repositories
             return await _context.Orders.CountAsync();
         }
 
-        //đơn hàng theo trạng thái 
+        // đếm số đơn hàng theo trạng thái
         public async Task<int> CountByStatusAsync(OrderStatus status)
         {
             return await _context.Orders
                 .CountAsync(x => x.Status == status);
         }
 
-        //tổng doanh thu
+        // tính tổng doanh thu từ đơn hàng hoàn thành
         public async Task<decimal> GetTotalRevenueAsync()
         {
             return await _context.Orders

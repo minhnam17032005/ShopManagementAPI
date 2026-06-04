@@ -1,98 +1,362 @@
-# Demo Course Management System (.NET / C#)
+﻿# ShopManagementAPI
 
-A practical backend project built with **ASP.NET Core Web API + Entity Framework Core + SQL Server**, developed to strengthen real-world backend engineering skills and transition professionally into the **C# / .NET ecosystem**.
+![.NET](https://img.shields.io/badge/.NET-8/9-purple)
+![ASP.NET Core](https://img.shields.io/badge/WebAPI-ASP.NET%20Core-blue)
+![SQL Server](https://img.shields.io/badge/Database-SQL%20Server-red)
+![Redis](https://img.shields.io/badge/Cache-Redis-orange)
+![JWT](https://img.shields.io/badge/Auth-JWT-green)
+![Swagger](https://img.shields.io/badge/API-Swagger-brightgreen)
 
-This project is not just basic CRUD. It focuses on how production systems are commonly designed: clean layering, business rules, authentication, authorization, status workflows, data integrity, and maintainable architecture.
+---
 
-## Why I Built This Project
+# 1. Giới thiệu dự án
 
-After exploring backend development across different technologies, I decided to focus deeply on **C# and ASP.NET Core** because of its strong enterprise adoption, clean architecture support, performance, and long-term career opportunities.
+**ShopManagementAPI** là hệ thống backend quản lý bán hàng được xây dựng bằng ASP.NET Core Web API, mô phỏng một hệ thống thực tế trong doanh nghiệp.
 
-To make that transition seriously, I built this project to practice how real backend systems are structured and delivered in companies using .NET.
+Dự án tập trung vào các core backend quan trọng:
 
-## Core Features
+* Xác thực người dùng bằng **JWT + Refresh Token**
+* Phân quyền theo **Role + Permission**
+* Quản lý sản phẩm / danh mục / đơn hàng
+* Cache dữ liệu bằng **Redis**
+* Logging hệ thống bằng **Serilog**
+* Kiến trúc backend theo hướng **Clean Architecture**
 
-### Authentication & Security
+---
 
-* User registration / login
-* JWT Access Token
-* Refresh Token ready structure
-* Password hashing with BCrypt
-* Profile management
-* Change password
-* Logout flow
+# 2. Mục tiêu học tập của dự án
 
-### Authorization (RBAC)
+Thông qua dự án này, tôi học được:
 
-* Role-based access control
-* Roles: **Admin / Staff / Customer**
-* Permissions management
-* Role-Permission assignment
-* Protected endpoints using authorization rules
+## Authentication & Security
 
-### Business Modules
+* JWT Access Token & Refresh Token
+* Logout thật sự bằng **Blacklist Token (Redis)**
+* Hash mật khẩu bằng BCrypt
+* Middleware xử lý xác thực
 
-* Users management
-* Products management
-* Categories management
-* Orders management
-* Order Items relationship
+## Authorization nâng cao
 
-### Real Business Logic
+* Role-based (ADMIN, STAFF, CUSTOMER)
+* Permission-based ([RequirePermission])
+* DataScope filter dữ liệu theo role
 
-* Order lifecycle: Pending / Completed / Cancelled
-* Prevent deleting products used in pending orders
-* Prevent disabling users with active pending orders
-* Automatic stock update when placing / cancelling orders
-* Soft delete + restore flow
-* Active / inactive state handling
+## Performance
 
-### Engineering Practices
+* Redis cache permission
+* Giảm truy vấn DB
+* Tối ưu truy xuất user permission
 
-* DTO pattern
-* Repository pattern
-* Service layer architecture
-* Global exception middleware
-* Validation handling
-* Clean API response format
-* SQL relational design with foreign keys
+## Backend Architecture
 
-## Tech Stack
+* Service – Repository pattern
+* Middleware pipeline
+* Exception handling global
+* DTO separation
 
-* **C#**
-* **ASP.NET Core Web API**
-* **Entity Framework Core**
-* **SQL Server**
-* **JWT Authentication**
-* **BCrypt**
-* **Swagger / OpenAPI**
-* **Git / GitHub**
+## Tư duy thực tế
 
-## What This Project Demonstrates
+* Validate business logic chặt chẽ
+* Soft delete / restore
+* FSM trạng thái đơn hàng
+* Tách domain rõ ràng
 
-This project reflects my transition into **C# backend development** with a focus on practical engineering rather than tutorial-only learning.
+---
 
-It demonstrates ability to:
+# 3. Kiến trúc hệ thống
 
-* Build scalable REST APIs
-* Design relational databases
-* Implement authorization systems
-* Handle real business rules
-* Write maintainable layered code
-* Work with enterprise .NET backend patterns
+```text id="arch"
+Client
+  ↓
+Controller
+  ↓
+Service (Business Logic)
+  ↓
+Repository
+  ↓
+Entity Framework Core
+  ↓
+SQL Server
+```
 
-## Current Direction
+---
 
-I am continuing to deepen my expertise in the C# / .NET ecosystem with next-step topics such as:
+# 4. Authentication Flow
 
-* Clean Architecture
-* Redis caching
-* Background jobs
-* Docker deployment
-* Unit / Integration testing
-* Advanced authorization
-* Microservices concepts
+```text id="auth"
+Login
+ → Validate user
+ → Generate JWT Access Token
+ → Generate Refresh Token
+ → Store DB + Cookie
 
-## Goal
+Request API
+ → JWT Middleware
+ → Check Redis blacklist
+ → Validate user active
+ → Inject CurrentUserService
+```
 
-To become a strong backend engineer specializing in **C# / ASP.NET Core**, capable of building reliable business systems used in production environments.
+---
+
+# 5. Authorization Flow
+
+```text id="auth2"
+JWT Claims
+   ↓
+Roles
+   ↓
+Permissions
+   ↓
+RequirePermission Attribute
+   ↓
+Redis Permission Cache
+   ↓
+DataScope Service
+```
+
+---
+
+# 6. Swagger API
+
+- [http://localhost:5013/swagger/index.html](http://localhost:5013/swagger/index.html)
+
+### Cách sử dụng:
+
+1. Chạy project
+2. Truy cập Swagger
+3. Login API để lấy token
+4. Click **Authorize**
+5. Nhập:
+
+```text id="token"
+Bearer {access_token}
+```
+
+---
+
+# 7. Cấu hình hệ thống (appsettings.json)
+
+## Ví dụ cấu hình chuẩn
+
+```json id="config"
+{
+  "ConnectionStrings": {
+    "MyDatabase": "Server=YOUR_SERVER_NAME;Database=ShopManagementAPI;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+
+  "RunSeeder": false,
+
+  "Jwt": {
+    "Key": "your-secret-key-here",
+    "Issuer": "YourIssuer",
+    "Audience": "YourAudience",
+    "AccessTokenExpirationMinutes": 10,
+    "RefreshTokenExpirationDays": 1
+  },
+
+  "Redis": {
+    "ConnectionString": "localhost:6379,connectTimeout=5000,syncTimeout=5000",
+    "PermissionCacheExpirationHours": 1
+  },
+
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.MSSqlServer" ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning"
+      }
+    },
+    "Enrich": [ "FromLogContext", "WithMachineName", "WithThreadId" ],
+    "WriteTo": [
+      {
+        "Name": "MSSqlServer",
+        "Args": {
+          "connectionString": "MyDatabase",
+          "tableName": "Logs",
+          "autoCreateSqlTable": true,
+          "restrictedToMinimumLevel": "Information"
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Ví dụ thực tế khi chạy
+
+### 1. Database local:
+
+```json
+"Server=DESKTOP-ABC123\\SQLEXPRESS;Database=ShopManagementAPI;Trusted_Connection=True;"
+```
+
+---
+
+### 2. JWT thực tế:
+
+```json
+"Key": "shop-api-2026-super-secret-key-123456"
+```
+
+---
+
+### 3. Redis local:
+
+```json
+"ConnectionString": "localhost:6379"
+```
+
+---
+
+# 8. Seeder dữ liệu
+
+## ⚡ Bật seed lần đầu
+
+```json
+"RunSeeder": true
+```
+
+### Dữ liệu tạo ra:
+
+* ADMIN role
+* STAFF role
+* CUSTOMER role
+* Permission hệ thống
+* Admin account
+
+---
+
+## Admin mặc định
+
+```csharp id="admin"
+Username = "admin",
+Password = "123456",
+FullName = "Super admin",
+Email = "admin2005@gmail.com",
+IsActive = true
+```
+
+---
+
+## Sau khi chạy xong
+
+```json
+"RunSeeder": false
+```
+
+- Tránh duplicate dữ liệu
+
+---
+
+# 9. Database Design
+
+## ER Diagram
+
+- ./Images/Diagram.png
+
+```text id="erd"
+[INSERT ER DIAGRAM IMAGE HERE]
+```
+
+---
+
+## Quan hệ chính
+
+* User ↔ Role (N-N)
+* Role ↔ Permission (N-N)
+* Category → Product (1-N)
+* User → Order (1-N)
+* Order → OrderItem (1-N)
+
+---
+
+# 10. Redis Usage
+
+## Permission Cache
+
+```text id="redis1"
+permissions:{userId}
+```
+
+## Blacklist Token
+
+```text id="redis2"
+blacklist:{jti}
+```
+
+---
+
+# 11. Modules chính
+
+## User
+
+* CRUD user
+* Gán role
+* Lock / unlock user
+
+## Auth
+
+* Login / Register
+* Refresh token
+* Logout (revoke JWT)
+
+## Product
+
+* CRUD product
+* Check duplicate category
+* Update stock
+* Soft delete
+
+## Category
+
+* CRUD category
+* Không cho xóa nếu còn product active
+
+## Order
+
+```text id="order"
+PENDING → CONFIRMED → SHIPPING → COMPLETED
+```
+
+---
+
+# 12. Điểm nổi bật
+
+* JWT + Refresh Token rotation
+* Redis caching system
+* Permission-based authorization
+* Role-based data filtering
+* Soft delete toàn hệ thống
+* Middleware pipeline rõ ràng
+* Clean architecture chuẩn backend
+
+---
+
+# 13. Hướng phát triển
+
+* Dashboard thống kê doanh thu
+* Audit log hệ thống
+* Notification realtime (SignalR)
+* Background job (Hangfire)
+* Rate limiting API
+* Docker + CI/CD deploy
+* Microservices architecture
+
+---
+
+# 14. Kết luận
+
+Dự án này giúp tôi hiểu sâu hơn về:
+
+* Cách xây dựng backend production-ready
+* Thiết kế hệ thống phân quyền thực tế
+* Tối ưu hiệu năng với Redis
+* Quản lý authentication/authorization nâng cao
+* Tư duy clean architecture trong .NET
+
+

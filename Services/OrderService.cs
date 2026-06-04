@@ -114,7 +114,12 @@ namespace ShopManagementAPI.Services
 
                 var order = new Order
                 {
-                    UserId = _currentUser.UserId,//lấy từ HttpContext
+                    UserId = _currentUser.UserId,
+
+                    ReceiverName = dto.ReceiverName,
+                    PhoneNumber = dto.PhoneNumber,
+                    ShippingAddress = dto.ShippingAddress,
+                    Note = dto.Note,
                     Status = OrderStatus.PENDING,
                     TotalAmount = totalAmount
                 };
@@ -157,6 +162,9 @@ namespace ShopManagementAPI.Services
 
                 if (order == null)
                     throw new NotFoundException("Không tìm thấy đơn hàng.");
+
+                if (!Enum.IsDefined(typeof(OrderStatus), dto.Status))
+                    throw new BadRequestException("Trạng thái hơn hàng không hợp lệ");
 
                 // 1. validate FSM
                 ValidateTransition(order.Status, dto.Status);
@@ -230,15 +238,6 @@ namespace ShopManagementAPI.Services
 
             return MapToDTO(order);
         }
-        //check trạng thái tiếp theo xem đã hợp lí 
-        private void ValidateTransition(OrderStatus current, OrderStatus next)
-        {
-            if (!AllowedTransitions.TryGetValue(current, out var allowed))
-                throw new ConflictException("Trạng thái hiện tại không hợp lệ.");
-
-            if (!allowed.Contains(next))
-                throw new ConflictException($"Không thể chuyển từ {current} sang {next}");
-        }
         
         //restock nếu như đơn hàng có trạng thái CANCELLED và RETURNED
         private async Task RestockAsync(Order order)
@@ -310,38 +309,49 @@ namespace ShopManagementAPI.Services
             }
         }
 
-        private OrderResponseDTO MapToDTO(Order order, List<OrderItemResponseDTO> items)
+        //check trạng thái tiếp theo xem đã hợp lí 
+        private void ValidateTransition(OrderStatus current, OrderStatus next)
+        {
+            if (!AllowedTransitions.TryGetValue(current, out var allowed))
+                throw new ConflictException("Trạng thái hiện tại không hợp lệ.");
+
+            if (!allowed.Contains(next))
+                throw new ConflictException($"Không thể chuyển từ {current} sang {next}");
+        }
+        private OrderResponseDTO MapToDTO(Order order,List<OrderItemResponseDTO> items)
         {
             return new OrderResponseDTO
             {
                 Id = order.Id,
                 UserId = order.UserId,
+
+                ReceiverName = order.ReceiverName,
+                PhoneNumber = order.PhoneNumber,
+                ShippingAddress = order.ShippingAddress,
+                Note = order.Note,
+
                 Status = order.Status,
                 TotalAmount = order.TotalAmount,
+
                 Items = items,
+
                 CreatedAt = order.CreatedAt,
                 UpdatedAt = order.UpdatedAt
             };
         }
+
         private OrderResponseDTO MapToDTO(Order order)
         {
-            return new OrderResponseDTO
-            {
-                Id = order.Id,
-                UserId = order.UserId,
-                Status = order.Status,
-                TotalAmount = order.TotalAmount,
-                CreatedAt = order.CreatedAt,
-                UpdatedAt = order.UpdatedAt,
-
-                Items = order.OrderItems.Select(x => new OrderItemResponseDTO
+            return MapToDTO(
+                order,
+                order.OrderItems.Select(x => new OrderItemResponseDTO
                 {
                     ProductId = x.ProductId,
                     Name = x.Product.Name,
                     Quantity = x.Quantity,
                     Price = x.Price
                 }).ToList()
-            };
+            );
         }
     }
 } 

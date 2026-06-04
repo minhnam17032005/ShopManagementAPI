@@ -11,7 +11,7 @@ namespace ShopManagementAPI.Jwt
             _redis = redis.GetDatabase();
         }
 
-        // blacklist token
+        // lưu token vào blacklist (Redis)
         public async Task BlacklistTokenAsync(string jti, TimeSpan ttl)
         {
             await _redis.StringSetAsync(
@@ -21,7 +21,7 @@ namespace ShopManagementAPI.Jwt
             );
         }
 
-        // check token bị blacklist chưa
+        // kiểm tra token có trong blacklist không
         public async Task<bool> IsBlacklistedAsync(string jti)
         {
             return await _redis.KeyExistsAsync(

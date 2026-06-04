@@ -27,11 +27,11 @@ namespace ShopManagementAPI.Authorization
             // cache key theo user
             var cacheKey = $"permissions:{userId}";
 
-            // đọc permissions từ redis
+            // lấy từ Redis
             var cachedPermissions =
                 await _redis.StringGetAsync(cacheKey);
 
-            // cache hit -> dùng luôn
+            // cache hit
             if (!cachedPermissions.IsNullOrEmpty){
                 _logger.LogInformation(
                     "Permission cache HIT for user {UserId}",
@@ -45,7 +45,7 @@ namespace ShopManagementAPI.Authorization
             _logger.LogInformation(
                 "Permission cache MISS for user {UserId}",
                 userId);
-            // cache miss -> query DB
+            // query DB khi miss
             var user = await _userRepository
                     .GetUserWithRolesAndPermissionsAsync(userId);
 
@@ -53,13 +53,14 @@ namespace ShopManagementAPI.Authorization
                 return new List<string>();
             }
 
-            // lấy toàn bộ permissions của user và lưu cache redis
+            // lấy permissions từ roles
             var permissions = user.UserRoles
                 .SelectMany(x => x.Role.RolePermissions)
                 .Select(x => x.Permission.Name)
                 .Distinct()
                 .ToList();
 
+            // lưu cache Redis
             await _redis.StringSetAsync(
                 cacheKey,
                 JsonSerializer.Serialize(permissions),
@@ -74,20 +75,18 @@ namespace ShopManagementAPI.Authorization
 
         public async Task RemovePermissionsAsync(int userId)
         {
-            // clear cache permission
-            await _redis.KeyDeleteAsync(
-                $"permissions:{userId}");
+            // Xóa cache permission của user
+            await _redis.KeyDeleteAsync($"permissions:{userId}");
         }
 
-        // clear all cache permissions
+        // Xóa toàn bộ cache permissions
         public async Task ClearAllPermissionsCacheAsync()
         {
-            // lấy endpoint từ config Redis hiện tại
+            // Lấy Redis server hiện tại
             var endpoint = _multiplexer.GetEndPoints().First();
-
             var server = _multiplexer.GetServer(endpoint);
 
-            // lấy tất cả key permissions:*
+            // Lấy tất cả key permissions:*
             var keys = server.Keys(pattern: "permissions:*");
 
             foreach (var key in keys)

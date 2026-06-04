@@ -1,4 +1,5 @@
-﻿using ShopManagementAPI.Models.Enum;
+﻿using System.ComponentModel.DataAnnotations;
+using ShopManagementAPI.Models.Enum;
 
 namespace ShopManagementAPI.DTOs.response
 {
@@ -8,6 +9,13 @@ namespace ShopManagementAPI.DTOs.response
 
         public int UserId { get; set; }
 
+        public string ReceiverName { get; set; } = string.Empty;
+
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        public string ShippingAddress { get; set; } = string.Empty;
+
+        public string? Note { get; set; } 
         public OrderStatus Status { get; set; }
 
         public decimal TotalAmount { get; set; }

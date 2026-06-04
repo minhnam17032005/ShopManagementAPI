@@ -46,7 +46,7 @@ namespace ShopManagementAPI.Services
         public async Task<RoleResponseDTO> GetByIdAsync(int id)
         {
             var role = await _repoRole.GetByIdWithPermissionsAsync(id)
-                ?? throw new NotFoundException("Role not found");
+                ?? throw new NotFoundException("Không tìm thấy vai trò");
 
             return MapToDTO(role);
         }
@@ -59,7 +59,7 @@ namespace ShopManagementAPI.Services
             ValidateInput(permissionIds);
 
             var role = await _repoRole.FindByIdAsync(roleId)
-                ?? throw new NotFoundException("Role not found");
+                ?? throw new NotFoundException("Không tìm thấy vai trò");
             ValidateRole(role);
 
             // ================= DATA SCOPE =================
@@ -70,7 +70,7 @@ namespace ShopManagementAPI.Services
             if (!_userDataScopeService.CanManageRole(currentRoles,role))
             {
                 throw new ForbiddenException(
-                    "ADMIN role permissions cannot be modified.");
+                    "Không có quyền chỉnh sửa vai trò ADMIN");
             }
 
             //Lấy permission hợp lệ trong DB
@@ -101,7 +101,7 @@ namespace ShopManagementAPI.Services
                     RoleId = roleId,
                     ProcessedIds = new List<int>(),
                     FailedIds = permissionIds,
-                    Message = "No new permissions to add"
+                    Message = "Không có quyền mới để thêm"
                 };
             }
 
@@ -125,7 +125,7 @@ namespace ShopManagementAPI.Services
                 RoleId = roleId,
                 ProcessedIds = toAdd,
                 FailedIds = failedIds,
-                Message = "Permissions added successfully"
+                Message = "Thêm quyền thành công"
             };
         }
 
@@ -137,7 +137,7 @@ namespace ShopManagementAPI.Services
             ValidateInput(permissionIds);
 
             var role = await _repoRole.FindByIdAsync(roleId)
-                ?? throw new NotFoundException("Role not found");
+                ?? throw new NotFoundException("Không tìm thấy vai trò");
 
             ValidateRole(role);
 
@@ -151,7 +151,7 @@ namespace ShopManagementAPI.Services
                     role))
             {
                 throw new ForbiddenException(
-                    "ADMIN role permissions cannot be modified.");
+                    "Không có quyền chỉnh sửa vai trò ADMIN");
             }
 
             //Lấy các mapping tồn tại trong DB
@@ -168,7 +168,7 @@ namespace ShopManagementAPI.Services
                     RoleId = roleId,
                     ProcessedIds = new List<int>(),
                     FailedIds = permissionIds,
-                    Message = "No permissions found in this role"
+                    Message = "Không tìm thấy quyền nào trong vai trò này"
                 };
             }
 
@@ -194,7 +194,7 @@ namespace ShopManagementAPI.Services
                 RoleId = roleId,
                 ProcessedIds = removedIds,
                 FailedIds = failedIds,
-                Message = "Permissions removed successfully"
+                Message = "Xóa quyền thành công"
             };
         }
 
@@ -224,13 +224,13 @@ namespace ShopManagementAPI.Services
         private static void ValidateInput(List<int> permissionIds)
         {
             if (permissionIds == null || !permissionIds.Any())
-                throw new BadRequestException("PermissionIds is empty");
+                throw new BadRequestException("Danh sách PermissionIds không được để trống");
         }
         // check quyền được phép sửa
         private static void ValidateRole(Role role)
         {
-            if (role.Name != RoleType.STAFF && role.Name != RoleType.CUSTOMER)
-                throw new ForbiddenException( "Only STAFF and CUSTOMER roles can be modified");
+            if (role.Name == RoleType.ADMIN)
+                throw new ForbiddenException("Không được phép chỉnh sửa vai trò ADMIN");
         }
 
         public class RoleDataScopeService

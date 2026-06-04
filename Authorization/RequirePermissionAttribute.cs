@@ -2,7 +2,7 @@
 
 namespace ShopManagementAPI.Authorization
 {
-    //đọc các nhãn quyền từ permissions 
+    //đọc các nhãn quyền từ Permissions 
     public class RequirePermissionAttribute : AuthorizeAttribute
     {
         public string Permission { get; }

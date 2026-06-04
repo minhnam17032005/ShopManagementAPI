@@ -20,6 +20,7 @@ namespace ShopManagementAPI.Authorization
         IQueryable<User> users,
         List<RoleType> currentUserRoles)
         {
+            // Không có role → trả về rỗng
             if (!currentUserRoles.Any())
                 return Enumerable.Empty<User>().AsQueryable();
 
@@ -75,6 +76,7 @@ namespace ShopManagementAPI.Authorization
 
         //add remove permissions chỉ admin
         public bool CanManageRole(
+        //danh sách (tập hợp)
         IEnumerable<RoleType> currentRoles,
         Role targetRole)
         {
