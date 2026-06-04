@@ -215,7 +215,7 @@ Bearer {access_token}
 
 # 8. Seeder dữ liệu
 
-## ⚡ Bật seed lần đầu
+## Bật seed lần đầu
 
 ```json
 "RunSeeder": true
