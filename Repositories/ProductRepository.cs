@@ -44,12 +44,11 @@ namespace ShopManagementAPI.Repositories
                 .ToListAsync();
         }
 
-        public async Task<List<Product>> GetAllWithCategoryAsync()
+        public IQueryable<Product> Query()
         {
-            return await _context.Products
-                .Include(p => p.Category)
-                .AsNoTracking()
-                .ToListAsync();
+            return _context.Products
+                .Include(x => x.Category)
+                .AsNoTracking();
         }
 
         public async Task<Product?> GetByIdWithCategoryAsync(int id)

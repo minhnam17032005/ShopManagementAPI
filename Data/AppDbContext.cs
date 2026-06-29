@@ -21,6 +21,9 @@ namespace ShopManagementAPI.Data
         public DbSet<Product> Products { get; set; } = null!;
         public DbSet<Order> Orders { get; set; } = null!;
         public DbSet<OrderItem> OrderItems { get; set; } = null!;
+        public DbSet<EmailOtp> EmailOtps { get; set; } = null!;
+
+        public DbSet<OtpVerification> OtpVerifications { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -43,6 +46,15 @@ namespace ShopManagementAPI.Data
                 .HasConversion<string>();
 
 
+            modelBuilder.Entity<EmailOtp>()
+                .Property(x => x.Type)
+                .HasConversion<string>();
+
+            modelBuilder.Entity<OtpVerification>()
+                .Property(x => x.Type)
+                .HasConversion<string>();
+
+
             //Relationships
             // =========================
             // 1. Role - User (N - N UserRole)
@@ -50,7 +62,7 @@ namespace ShopManagementAPI.Data
             modelBuilder.Entity<UserRole>()
                  .HasIndex(rp => new { rp.UserId, rp.RoleId })
                  .IsUnique();
-            
+
             modelBuilder.Entity<UserRole>()
                 .HasOne(rp => rp.User)
                 .WithMany(r => r.UserRoles)
@@ -58,7 +70,7 @@ namespace ShopManagementAPI.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UserRole>()
-                .HasOne(rp => rp.Role)  
+                .HasOne(rp => rp.Role)
                 .WithMany(p => p.UserRoles)
                 .HasForeignKey(rp => rp.RoleId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -123,6 +135,64 @@ namespace ShopManagementAPI.Data
                 .HasOne(oi => oi.Product)
                 .WithMany(p => p.OrderItems)
                 .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================
+            // 6. EmailOtp - User (1 - N)
+            // =========================
+            modelBuilder.Entity<EmailOtp>()
+                .HasIndex(x => new
+                {
+                    x.UserId,
+                    x.Type,
+                    x.UsedAt
+                });
+
+            modelBuilder.Entity<EmailOtp>()
+                .HasIndex(x => new
+                {
+                    x.Email,
+                    x.Type,
+                    x.UsedAt
+                });
+
+            modelBuilder.Entity<EmailOtp>()
+                .HasIndex(x => x.TokenHash)
+                .IsUnique();
+
+            modelBuilder.Entity<EmailOtp>()
+                .HasOne(x => x.User)
+                .WithMany(x => x.EmailOtps)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // =========================
+            // 7. OtpVerification - User (1 - N)
+            // =========================
+            modelBuilder.Entity<OtpVerification>()
+                .HasIndex(x => new
+                {
+                    x.UserId,
+                    x.Type,
+                    x.UsedAt
+                });
+
+            modelBuilder.Entity<OtpVerification>()
+                .HasIndex(x => new
+                {
+                    x.Email,
+                    x.Type,
+                    x.UsedAt
+                });
+
+            modelBuilder.Entity<OtpVerification>()
+                .HasIndex(x => x.TokenHash)
+                .IsUnique();
+
+            modelBuilder.Entity<OtpVerification>()
+                .HasOne(x => x.User)
+                .WithMany(x => x.OtpVerifications)
+                .HasForeignKey(x => x.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

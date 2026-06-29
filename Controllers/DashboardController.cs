@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
-using ShopManagementAPI.DTOs.response;
+using ShopManagementAPI.DTOs.response.Dashboard;
 using ShopManagementAPI.Extensions;
 using ShopManagementAPI.Services;
 

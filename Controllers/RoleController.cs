@@ -1,11 +1,12 @@
-﻿using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
+﻿using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using ShopManagementAPI.DTOs.request.Role;
+using ShopManagementAPI.DTOs.response.Role;
 
 namespace ShopManagementAPI.Controllers
 {

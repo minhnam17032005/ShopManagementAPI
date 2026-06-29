@@ -1,12 +1,13 @@
-﻿using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
-using ShopManagementAPI.Services;
+﻿using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using ShopManagementAPI.DTOs.request.Product;
+using ShopManagementAPI.DTOs.response.Product;
+using ShopManagementAPI.DTOs.response;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -38,9 +39,10 @@ namespace ShopManagementAPI.Controllers
 
         [AllowAnonymous]
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<ProductResponseDTO>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<PagedResponseDTO<ProductResponseDTO>>>> GetAll(
+        [FromQuery] ProductQueryDTO request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(request);
 
             return this.ApiOk(
                 result,

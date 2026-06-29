@@ -53,6 +53,58 @@ namespace ShopManagementAPI.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("ShopManagementAPI.Models.EmailOtp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("Email", "Type", "UsedAt");
+
+                    b.HasIndex("UserId", "Type", "UsedAt");
+
+                    b.ToTable("EmailOtps");
+                });
+
             modelBuilder.Entity("ShopManagementAPI.Models.Order", b =>
                 {
                     b.Property<int>("Id")
@@ -133,6 +185,58 @@ namespace ShopManagementAPI.Migrations
                         .IsUnique();
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("ShopManagementAPI.Models.OtpVerification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("Email", "Type", "UsedAt");
+
+                    b.HasIndex("UserId", "Type", "UsedAt");
+
+                    b.ToTable("OtpVerifications");
                 });
 
             modelBuilder.Entity("ShopManagementAPI.Models.Permission", b =>
@@ -337,6 +441,17 @@ namespace ShopManagementAPI.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("ShopManagementAPI.Models.EmailOtp", b =>
+                {
+                    b.HasOne("ShopManagementAPI.Models.User", "User")
+                        .WithMany("EmailOtps")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ShopManagementAPI.Models.Order", b =>
                 {
                     b.HasOne("ShopManagementAPI.Models.User", "User")
@@ -365,6 +480,17 @@ namespace ShopManagementAPI.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("ShopManagementAPI.Models.OtpVerification", b =>
+                {
+                    b.HasOne("ShopManagementAPI.Models.User", "User")
+                        .WithMany("OtpVerifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ShopManagementAPI.Models.Product", b =>
@@ -445,7 +571,11 @@ namespace ShopManagementAPI.Migrations
 
             modelBuilder.Entity("ShopManagementAPI.Models.User", b =>
                 {
+                    b.Navigation("EmailOtps");
+
                     b.Navigation("Orders");
+
+                    b.Navigation("OtpVerifications");
 
                     b.Navigation("UserRoles");
                 });

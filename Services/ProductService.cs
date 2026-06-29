@@ -1,10 +1,12 @@
 ﻿using ShopManagementAPI.Data;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.Models;
 using ShopManagementAPI.Repositories;
 using Microsoft.EntityFrameworkCore;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.DTOs.request.Product;
+using ShopManagementAPI.DTOs.response.Product;
+using ShopManagementAPI.DTOs.response;
 
 namespace ShopManagementAPI.Services
 {
@@ -108,11 +110,89 @@ namespace ShopManagementAPI.Services
             return MapToDTO(product);
         }
 
-        public async Task<List<ProductResponseDTO>> GetAllAsync()
+        public async Task<PagedResponseDTO<ProductResponseDTO>> GetAllAsync(
+        ProductQueryDTO request)
         {
-            var products = await _repoProduct.GetAllWithCategoryAsync();
+            var query = _repoProduct.Query();
 
-            return products.Select(MapToDTO).ToList();
+            // SEARCH : Tìm kiếm theo tên sản phẩm
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                query = query.Where(x =>
+                    x.Name.Contains(request.Keyword));
+            }
+
+            // FILTER
+            // Lọc theo trạng thái
+            if (request.IsActive.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IsActive == request.IsActive.Value);
+            }
+
+            // Lọc theo danh mục
+            if (request.CategoryId.HasValue)
+            {
+                query = query.Where(x =>
+                    x.CategoryId == request.CategoryId.Value);
+            }
+
+            // Lọc theo khoảng giá
+            if (request.MinPrice.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Price >= request.MinPrice.Value);
+            }
+
+            if (request.MaxPrice.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Price <= request.MaxPrice.Value);
+            }
+
+            // SORT
+            query = request.SortBy.ToLower() switch
+            {
+                "name" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Name)
+                    : query.OrderBy(x => x.Name),
+
+                "price" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Price)
+                    : query.OrderBy(x => x.Price),
+
+                "createdat" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.CreatedAt)
+                    : query.OrderBy(x => x.CreatedAt),
+
+                _ => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Id)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            // PAGING
+            var products = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PagedResponseDTO<ProductResponseDTO>
+            {
+                Items = products
+                    .Select(MapToDTO)
+                    .ToList(),
+
+                Page = request.Page,
+
+                PageSize = request.PageSize,
+
+                TotalCount = totalCount,
+
+                TotalPages = (int)Math.Ceiling(
+                    totalCount / (double)request.PageSize)
+            };
         }
 
         public async Task<ProductResponseDTO> GetByIdAsync(int id)

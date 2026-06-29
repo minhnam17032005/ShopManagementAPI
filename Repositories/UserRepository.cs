@@ -53,6 +53,12 @@ namespace ShopManagementAPI.Repositories
                 .ToListAsync();
         }
 
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            return await _context.Users
+                .FirstOrDefaultAsync(x => x.Email == email);
+        }
+
         public async Task<User?> GetByIdWithRolesAsync(int id)
         {
             return await _context.Users

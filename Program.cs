@@ -11,18 +11,37 @@ using ShopManagementAPI.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
-using System.Text;
+using System.Text;  
 using StackExchange.Redis;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using ShopManagementAPI.Authorization;
+using ShopManagementAPI.Configurations;
+
 
 var builder = WebApplication.CreateBuilder(args);
+
+//configurations
+builder.Services.Configure<JwtSettings>(
+    builder.Configuration.GetSection("Jwt"));
+
+builder.Services.Configure<RedisSettings>(
+    builder.Configuration.GetSection("Redis"));
+
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
+builder.Services.Configure<OtpSettings>(
+    builder.Configuration.GetSection("OtpSettings"));
 
 // ===== Thêm DbContext để EF Core biết kết nối DB bên appsettings.Development.json=====
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("MyDatabase")));
 
+var jwtSettings = builder.Configuration
+    .GetSection("Jwt")
+    .Get<JwtSettings>()
+    ?? throw new Exception("Jwt configuration is missing.");
 //===== bộ não xử lý JWT → biến token thành HttpContext.User =====
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
@@ -34,17 +53,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
 
-        ValidIssuer =builder.Configuration["Jwt:Issuer"],
-        ValidAudience =builder.Configuration["Jwt:Audience"],
+        ValidIssuer = jwtSettings.Issuer,
+        ValidAudience = jwtSettings.Audience,
 
         IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(
-                        builder.Configuration["Jwt:Key"]!
-                    )),
+            Encoding.UTF8.GetBytes(jwtSettings.Key)
+        ),
+
         RoleClaimType = ClaimTypes.Role,
         NameClaimType = "username"
     };
-    options.MapInboundClaims = false; 
+    options.MapInboundClaims = false;
     options.EventsType = typeof(JwtAuthEvents);
 });
 
@@ -66,6 +85,10 @@ builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<UserRoleRepository>();
 builder.Services.AddScoped<OrderRepository>();
 builder.Services.AddScoped<OrderItemRepository>();
+builder.Services.AddScoped<EmailOtpRepository>();
+builder.Services.AddScoped<OtpVerificationRepository>();
+builder.Services.AddScoped<UnitOfWork>();
+
 //====Service====
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<ProductService>();
@@ -81,13 +104,24 @@ builder.Services.AddScoped<OrderService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<JwtAuthEvents>();
+builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<OtpService>();
 
 // redis connection
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect(
-        builder.Configuration["Redis:ConnectionString"]!
-    )
-);
+var redisSettings = builder.Configuration
+    .GetSection("Redis")
+    .Get<RedisSettings>()
+    ?? throw new Exception("Redis configuration is missing.");
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var options = ConfigurationOptions.Parse(
+        redisSettings.ConnectionString);
+
+    options.AbortOnConnectFail = false;
+
+    return ConnectionMultiplexer.Connect(options);
+});
+
 // Redis services :jwt blacklist --- permission cache
 builder.Services.AddSingleton<JwtBlacklistService>();
 builder.Services.AddScoped<PermissionCacheService>();
@@ -158,20 +192,20 @@ app.Lifetime.ApplicationStarted.Register(() =>
 {
     Task.Run(async () =>
     {
-        using var scope = app.Services.CreateScope();
+        try
+        {
+            using var scope = app.Services.CreateScope();
 
-        var db = scope.ServiceProvider
-            .GetRequiredService<AppDbContext>();
+            var db = scope.ServiceProvider
+                .GetRequiredService<AppDbContext>();
 
-        var redis = scope.ServiceProvider
-            .GetRequiredService<IConnectionMultiplexer>();
-
-        //SQL + build EF Core model/query cache
-        await db.Database.CanConnectAsync();
-        await db.Permissions.AnyAsync();
-
-        //Redis
-        await redis.GetDatabase().PingAsync();
+            await db.Database.CanConnectAsync();
+            await db.Permissions.AnyAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[WARMUP] {ex.Message}");
+        }
     });
 });
 

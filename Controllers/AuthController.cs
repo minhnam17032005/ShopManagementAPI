@@ -1,6 +1,4 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 
 using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +8,11 @@ using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using Microsoft.Extensions.Options;
+using ShopManagementAPI.Configurations;
+using ShopManagementAPI.DTOs.request.Auth;
+using ShopManagementAPI.DTOs.response.Auth;
+using ShopManagementAPI.DTOs.response.User;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -19,12 +22,16 @@ namespace ShopManagementAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
-        private readonly IConfiguration _config;
+        private readonly JwtSettings _jwtSettings;
+        private readonly JwtService _jwtService;
+        private readonly OtpService _otpService;
 
-        public AuthController(AuthService authService, IConfiguration config)
+        public AuthController(AuthService authService, IOptions<JwtSettings> jwtOptions, JwtService jwtService, OtpService otpService)
         {
             _authService = authService;
-            _config = config;
+            _jwtSettings = jwtOptions.Value;
+            _jwtService = jwtService;
+            _otpService = otpService;
         }
 
         [AllowAnonymous]
@@ -35,18 +42,11 @@ namespace ShopManagementAPI.Controllers
                 await _authService.LoginAsync(dto);
 
             // set cookie
-            Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
-            {
-                HttpOnly = true, // không cho JS đọc (chống XSS)
-
-                Secure = true, // chỉ gửi qua HTTPS (prod bắt buộc)
-
-                SameSite = SameSiteMode.Strict, // chỉ gửi cùng domain (chống CSRF)
-
-                Expires = DateTime.UtcNow.AddDays(
-                    int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
-                )
-            });
+            Response.Cookies.Append(
+                "refreshToken",
+                refreshToken,
+                _jwtService.GetRefreshTokenCookieOptions()
+            );
 
             return this.ApiOk(
                 response,
@@ -69,15 +69,11 @@ namespace ShopManagementAPI.Controllers
                 await _authService.RefreshTokenAsync(refreshToken);
 
             // set refresh token mới vào cookie 
-            Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddDays(
-                    int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
-                )
-            });
+            Response.Cookies.Append(
+                "refreshToken",
+                refreshToken,
+                _jwtService.GetRefreshTokenCookieOptions()
+            );
 
             return this.ApiOk(
                 response,
@@ -129,7 +125,81 @@ namespace ShopManagementAPI.Controllers
             );
         }
 
+        //===Change Password===//
         [Authorize]
+        [HttpPost("change-password/send-otp")]
+        public async Task<ActionResult<ApiResponse<object>>> SendChangePasswordOtp()
+        {
+            await _otpService.SendChangePasswordOtpAsync();
+
+            return this.ApiOk<object>(
+                null,
+                "OTP đã được gửi đến email của bạn."
+            );
+        }
+
+        [Authorize]
+        [HttpPost("change-password/verify-otp")]
+        public async Task<ActionResult<ApiResponse<VerifyOtpResponseDTO>>> VerifyChangePasswordOtp(
+        VerifyChangePasswordOtpRequest request)
+        {
+            var response = await _otpService.VerifyChangePasswordOtpAsync(request);
+
+            return this.ApiOk(
+                response,
+                "Xác thực OTP thành công."
+            );
+        }
+
+        [Authorize]
+        [HttpPost("change-password/change")]
+        public async Task<ActionResult<ApiResponse<object>>> ChangePassword(
+        [FromBody] ChangePasswordRequest request)
+        {
+            await _otpService.ChangePasswordAsync(request);
+
+            return this.ApiOk<object>(
+                null,
+                "Mật khẩu thay đổi thành công."
+            );
+        }
+
+        //===Forget Password===//
+        [HttpPost("forgot-password/send-otp")]
+        public async Task<ActionResult<ApiResponse<object>>> SendForgotPasswordOtp(
+            [FromBody] ForgotPasswordOtpRequest request)
+        {
+            await _otpService.SendForgotPasswordOtpAsync(request.Email);
+
+            return this.ApiOk<object>(
+                null,
+                "OTP đã được gửi đến email của bạn."
+            );
+        }
+
+        [HttpPost("forgot-password/verify-otp")]
+        public async Task<ActionResult<ApiResponse<VerifyOtpResponseDTO>>> VerifyForgotPasswordOtp(
+        [FromBody] VerifyForgotPasswordOtpRequest request)
+        {
+            var response =
+                await _otpService.VerifyForgotPasswordOtpAsync(request);
+
+            return this.ApiOk(
+                response,
+                "Xác thực OTP thành công.");
+        }
+
+        [HttpPost("forgot-password/reset")]
+        public async Task<ActionResult<ApiResponse<object>>> ResetForgotPassword(
+        [FromBody] ForgotPasswordRequest request)
+        {
+            await _otpService.ForgotPasswordAsync(request);
+
+            return this.ApiOk<object>(
+                null,
+                "Đặt lại mật khẩu thành công.");
+        }
+        /*[Authorize]
         [HttpPost("change-password")]
         public async Task<ActionResult<ApiResponse<object>>> ChangePassword(
             ChangePasswordRequestDTO request)
@@ -140,6 +210,6 @@ namespace ShopManagementAPI.Controllers
                 null,
                 "Đổi mật khẩu thành công. Vui lòng đăng nhập lại."
             );
-        }
+        }*/
     }
 }

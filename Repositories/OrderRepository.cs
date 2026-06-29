@@ -15,14 +15,16 @@ namespace ShopManagementAPI.Repositories
             _context = context;
         }
 
-        //dành cho management 
-        public async Task<List<Order>> GetAllAsync()
+        // filter, search, sort, paging
+        public IQueryable<Order> Query()
         {
-            return await _context.Orders
+            return _context.Orders
                 .Include(x => x.OrderItems)
                 .ThenInclude(x => x.Product)
-                .ToListAsync();
+                .AsNoTracking();
         }
+
+        //dành cho management 
         public async Task<Order?> GetByIdAsync(int id)
         {
             return await _context.Orders
@@ -32,12 +34,6 @@ namespace ShopManagementAPI.Repositories
         }
 
         //dành cho customer 
-        public async Task<List<Order>> GetByUserIdAsync(int userId)
-        {
-            return await _context.Orders
-                .Where(x => x.UserId == userId)
-                .ToListAsync();
-        }
         public async Task<Order?> GetByIdAndUserIdAsync(int orderId,int userId)
         {
             return await _context.Orders

@@ -27,5 +27,9 @@ namespace ShopManagementAPI.Models
 
         public List<UserRole> UserRoles { get; set; } = new();
         public List<Order> Orders { get; set; } = new();
+
+        public List<EmailOtp> EmailOtps { get; set; } = new();
+
+        public List<OtpVerification> OtpVerifications { get; set; } = new();
     }
 }

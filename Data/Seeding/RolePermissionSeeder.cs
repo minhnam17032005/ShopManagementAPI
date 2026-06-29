@@ -8,8 +8,8 @@ namespace ShopManagementAPI.Data.Seeding
     {
         public static async Task SeedAsync(AppDbContext context)
         {
-            var roles = await context.Roles.ToListAsync();
-            var permissions = await context.Permissions.ToListAsync();
+            var roles = await context.Roles.AsNoTracking().ToListAsync();
+            var permissions = await context.Permissions.AsNoTracking().ToListAsync();
 
             var admin = roles.First(x => x.Name == RoleType.ADMIN);
             var manager = roles.First(x => x.Name == RoleType.MANAGER);

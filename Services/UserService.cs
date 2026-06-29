@@ -1,8 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
 using ShopManagementAPI.DTOs;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.Models;
 using ShopManagementAPI.Models.Enum;
@@ -11,6 +9,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.Jwt;
 using Microsoft.EntityFrameworkCore;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.DTOs.request.User;
+using ShopManagementAPI.DTOs.response.User;
+using ShopManagementAPI.DTOs.response;
 
 namespace ShopManagementAPI.Services
 {
@@ -201,24 +203,88 @@ namespace ShopManagementAPI.Services
         }
 
 
-        public async Task<List<UserResponseDTO>> GetAllAsync()
+        public async Task<PagedResponseDTO<UserResponseDTO>> GetAllAsync(
+    UserQueryDTO request)
         {
-            // lấy role hiện tại của user
+            // Lấy role của user hiện tại
             var currentUserRoles = _currentUserService.Roles
                 .Select(r => Enum.Parse<RoleType>(r))
                 .ToList();
 
             var query = _repoUser.Query();
 
-            // filter theo data scope
+            //DATA SCOPE : Giới hạn dữ liệu theo quyền
             query = _userDataScopeService
                 .FilterUsers(query, currentUserRoles);
 
-            var users = await query.ToListAsync();
+            // SEARCH : Tìm kiếm theo Username, FullName, Email
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                query = query.Where(x =>
+                    x.Username.Contains(request.Keyword)
+                    || x.FullName.Contains(request.Keyword)
+                    || x.Email.Contains(request.Keyword));
+            }
 
-            return users
-                .Select(MapToDTO)
-                .ToList();
+            // FILTER
+            // Lọc theo trạng thái
+            if (request.IsActive.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IsActive == request.IsActive.Value);
+            }
+
+            // Lọc theo Role
+            if (request.Role.HasValue)
+            {
+                query = query.Where(x =>
+                    x.UserRoles.Any(r =>
+                        r.Role.Name == request.Role.Value));
+            }
+
+            // SORT
+            query = request.SortBy.ToLower() switch
+            {
+                "username" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Username)
+                    : query.OrderBy(x => x.Username),
+
+                "fullname" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.FullName)
+                    : query.OrderBy(x => x.FullName),
+
+                "email" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Email)
+                    : query.OrderBy(x => x.Email),
+
+                "createdat" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.CreatedAt)
+                    : query.OrderBy(x => x.CreatedAt),
+
+                _ => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Id)
+            };
+            var totalCount = await query.CountAsync();
+
+            // PAGING
+            var users = await query
+                .AsNoTracking()
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PagedResponseDTO<UserResponseDTO>
+            {
+                Items = users
+                    .Select(MapToDTO)
+                    .ToList(),
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(
+                    totalCount / (double)request.PageSize)
+            };
         }
 
         public async Task<UserResponseDTO> GetByIdAsync(int id)

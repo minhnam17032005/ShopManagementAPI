@@ -1,4 +1,4 @@
-﻿using ShopManagementAPI.DTOs.response;
+﻿using ShopManagementAPI.DTOs.response.Dashboard;
 using ShopManagementAPI.Models.Enum;
 using ShopManagementAPI.Repositories;
 

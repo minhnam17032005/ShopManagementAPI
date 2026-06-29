@@ -1,10 +1,12 @@
 ﻿using ShopManagementAPI.Data;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.Models;
 using ShopManagementAPI.Repositories;
 using Microsoft.EntityFrameworkCore;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.DTOs.request.Category;
+using ShopManagementAPI.DTOs.response.Category;
+using ShopManagementAPI.DTOs.response;
 
 namespace ShopManagementAPI.Services
 {
@@ -63,13 +65,65 @@ namespace ShopManagementAPI.Services
             return MapToDTO(category);
         }
 
-        public async Task<List<CategoryResponseDTO>> GetAllAsync()
+        public async Task<PagedResponseDTO<CategoryResponseDTO>> GetAllAsync(CategoryQueryDTO request)
         {
-            var categories = await _repoCategory.GetAllAsync();
+            var query = _repoCategory.Query();
 
-            return categories
-                .Select(MapToDTO)
-                .ToList();
+            // Search : Tìm kiếm theo tên hoặc mô tả
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                query = query.Where(x =>
+                    x.Name.Contains(request.Keyword) ||
+                    (x.Description != null &&
+                     x.Description.Contains(request.Keyword)));
+            }
+
+            // Filter : Lọc theo trạng thái hoạt động
+            if (request.IsActive.HasValue)
+            {
+                query = query.Where(x =>
+                    x.IsActive == request.IsActive.Value);
+            }
+
+            // Sort
+            query = request.SortBy.ToLower() switch
+            {
+                // Sắp xếp theo tên
+                "name" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Name)
+                    : query.OrderBy(x => x.Name),
+                
+                // Sắp xếp theo ngày tạo
+                "createdat" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.CreatedAt)
+                    : query.OrderBy(x => x.CreatedAt),
+
+                // Mặc định sắp xếp theo Id
+                _ => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Id)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            // Bỏ qua số bản ghi của các trang trước và lấy số lượng bản ghi của trang hiện tại
+            var categories = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PagedResponseDTO<CategoryResponseDTO>
+            {
+                Items = categories
+                    .Select(MapToDTO)
+                    .ToList(),
+
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(
+                    totalCount / (double)request.PageSize)
+            };
         }
 
         public async Task<CategoryResponseDTO> GetByIdAsync(int id)

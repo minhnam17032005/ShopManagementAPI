@@ -13,9 +13,9 @@ namespace ShopManagementAPI.Repositories
             _context = context;
         }
 
-        public async Task<List<Permission>> GetAllAsync()
+        public IQueryable<Permission> Query()
         {
-            return await _context.Permissions.ToListAsync();
+            return _context.Permissions.AsNoTracking();
         }
 
         public async Task<Permission?> GetByIdAsync(int id)

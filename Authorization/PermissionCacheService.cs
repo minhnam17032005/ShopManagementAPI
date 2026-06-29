@@ -1,4 +1,6 @@
-﻿using ShopManagementAPI.Repositories;
+﻿using Microsoft.Extensions.Options;
+using ShopManagementAPI.Configurations;
+using ShopManagementAPI.Repositories;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -9,17 +11,17 @@ namespace ShopManagementAPI.Authorization
         private readonly IDatabase _redis;
         private readonly UserRepository _userRepository;
         private readonly ILogger<PermissionCacheService> _logger;
-        private readonly IConfiguration _config;
+        private readonly RedisSettings _redisSettings;
         private readonly IConnectionMultiplexer _multiplexer;
 
         public PermissionCacheService(UserRepository userRepository
-                    , ILogger<PermissionCacheService> logger, IConfiguration config, IConnectionMultiplexer multiplexer)
+                    , ILogger<PermissionCacheService> logger, IOptions<RedisSettings> redisOptions, IConnectionMultiplexer multiplexer)
         {
             _redis = multiplexer.GetDatabase();
             _multiplexer = multiplexer;
             _userRepository = userRepository;
             _logger = logger;
-            _config = config;
+            _redisSettings = redisOptions.Value;
         }
 
         public async Task<List<string>> GetPermissionsAsync(int userId)
@@ -65,8 +67,7 @@ namespace ShopManagementAPI.Authorization
                 cacheKey,
                 JsonSerializer.Serialize(permissions),
                 TimeSpan.FromHours(
-                int.Parse(
-                    _config["Redis:PermissionCacheExpirationHours"]!)
+                    _redisSettings.PermissionCacheExpirationHours
                 )
             );
 

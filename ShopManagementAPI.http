@@ -1,6 +1,44 @@
-@ShopManagementAPI_HostAddress = http://localhost:5013
+@Host = http://localhost:5013
 
-GET {{ShopManagementAPI_HostAddress}}/weatherforecast/
-Accept: application/json
+@Token = paste_access_token_here
+
+### Login
+POST {{Host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "nam",
+  "password": "123456"
+}
+
+###
+
+### Current User
+GET {{Host}}/api/auth/me
+Authorization: Bearer {{Token}}
+
+###
+
+### Get Categories
+GET {{Host}}/api/categories
+Authorization: Bearer {{Token}}
+
+###
+
+### Get Products
+GET {{Host}}/api/products
+Authorization: Bearer {{Token}}
+
+###
+
+### My Orders
+GET {{Host}}/api/orders/my-orders
+Authorization: Bearer {{Token}}
+
+###
+
+### Dashboard Overview
+GET {{Host}}/api/dashboard/overview
+Authorization: Bearer {{Token}}
 
 ###

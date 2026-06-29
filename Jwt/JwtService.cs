@@ -5,22 +5,24 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using ShopManagementAPI.Configurations;
+using Microsoft.Extensions.Options;
 
 namespace ShopManagementAPI.Jwt
 {
     public class JwtService
     {
-        private readonly IConfiguration _config;
+        private readonly JwtSettings _jwtSettings;
 
-        public JwtService(IConfiguration config)
+        public JwtService(IOptions<JwtSettings> jwtOptions)
         {
-            _config = config;
+            _jwtSettings = jwtOptions.Value;
         }
 
         public string GenerateAccessToken(User user)
         {
             // JWT signing key từ config
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Key));
 
             // Signing credentials (HMAC SHA256)
             var creds = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
@@ -55,12 +57,12 @@ namespace ShopManagementAPI.Jwt
 
             // Thời gian hết hạn token
             var expires = DateTime.UtcNow.AddMinutes(
-                int.Parse(_config["Jwt:AccessTokenExpirationMinutes"]!)
+                _jwtSettings.AccessTokenExpirationMinutes
             );
 
             var token = new JwtSecurityToken(
-                issuer: _config["Jwt:Issuer"],
-                audience: _config["Jwt:Audience"],
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
                 claims: claims,
                 expires: expires,
                 signingCredentials: creds
@@ -83,5 +85,22 @@ namespace ShopManagementAPI.Jwt
             // Encode sang Base64
             return Convert.ToBase64String(randomBytes);
         }
+
+        public CookieOptions GetRefreshTokenCookieOptions()
+        {
+            return new CookieOptions
+            {
+                HttpOnly = true, // không cho JS đọc (chống XSS)
+
+                Secure = true, // chỉ gửi qua HTTPS (prod bắt buộc)
+
+                SameSite = SameSiteMode.Strict, // chỉ gửi cùng domain (chống CSRF)
+
+                Expires = DateTime.UtcNow.AddDays(
+                    _jwtSettings.RefreshTokenExpirationDays)
+
+            };
+        }
+
     }
 }

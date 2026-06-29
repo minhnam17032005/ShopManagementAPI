@@ -31,9 +31,9 @@ namespace ShopManagementAPI.Repositories
             return await _context.Categories.FindAsync(id);
         }
 
-        public async Task<List<Category>> GetAllAsync()
+        public IQueryable<Category> Query()
         {
-            return await _context.Categories.ToListAsync();
+            return _context.Categories.AsNoTracking();
         }
 
         public async Task AddAsync(Category category)

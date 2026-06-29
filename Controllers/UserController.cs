@@ -1,6 +1,4 @@
 ﻿using Azure;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Models;
 using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -8,6 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using ShopManagementAPI.DTOs.request.User;
+using ShopManagementAPI.DTOs.response.User;
+using ShopManagementAPI.DTOs.response;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -88,9 +89,10 @@ namespace ShopManagementAPI.Controllers
         [Authorize]
         [RequirePermission(Permissions.GetUsers)]
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<UserResponseDTO>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<PagedResponseDTO<UserResponseDTO>>>> GetAll(
+        [FromQuery] UserQueryDTO request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(request);
 
             return this.ApiOk(
                 result,

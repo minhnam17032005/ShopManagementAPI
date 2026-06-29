@@ -1,7 +1,5 @@
 ﻿using ShopManagementAPI.Data;
 using ShopManagementAPI.DTOs;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.Models.Enum;
@@ -10,6 +8,11 @@ using ShopManagementAPI.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Azure;
 using Azure.Core;
+using ShopManagementAPI.Configurations;
+using Microsoft.Extensions.Options;
+using ShopManagementAPI.DTOs.request.Auth;
+using ShopManagementAPI.DTOs.response.Auth;
+using ShopManagementAPI.DTOs.response.User;
 
 namespace ShopManagementAPI.Services
 {
@@ -19,18 +22,18 @@ namespace ShopManagementAPI.Services
         private readonly RoleRepository _repoRole;
         private readonly JwtService _jwtService;
         private readonly CurrentUserService _currentUser;
-        private readonly IConfiguration _config;
+        private readonly JwtSettings _jwtSettings;
         private readonly JwtBlacklistService _jwtBlacklist;
 
 
         public AuthService(UserRepository repoUser, RoleRepository repoRole,
-            JwtService jwtService, CurrentUserService currentUser, IConfiguration config, JwtBlacklistService jwtBlacklist)
+            JwtService jwtService, CurrentUserService currentUser, IOptions<JwtSettings> jwtOptions, JwtBlacklistService jwtBlacklist)
         {
             _repoUser = repoUser;
             _repoRole = repoRole;
             _jwtService = jwtService;
             _currentUser = currentUser;
-            _config = config;
+            _jwtSettings = jwtOptions.Value;
             _jwtBlacklist = jwtBlacklist;
         }
         public async Task<(LoginResponseDTO response, string refreshToken)> LoginAsync(LoginRequestDTO dto)
@@ -55,7 +58,7 @@ namespace ShopManagementAPI.Services
 
             // set thời gian hết hạn refresh token
             user.RefreshTokenExpiredAt = DateTime.UtcNow.AddDays(
-                int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
+                _jwtSettings.RefreshTokenExpirationDays
             );
             await _repoUser.SaveAsync();
 
@@ -103,7 +106,7 @@ namespace ShopManagementAPI.Services
 
             // cập nhật hạn refresh token
             user.RefreshTokenExpiredAt = DateTime.UtcNow.AddDays(
-                int.Parse(_config["Jwt:RefreshTokenExpirationDays"])
+                _jwtSettings.RefreshTokenExpirationDays
             );
 
             await _repoUser.SaveAsync();
@@ -230,7 +233,7 @@ namespace ShopManagementAPI.Services
             }
         }
 
-        public async Task ChangePasswordAsync(ChangePasswordRequestDTO request)
+       /* public async Task ChangePasswordAsync(ChangePasswordRequestDTO request)
         {
             // lấy user id từ token
             var userId = _currentUser.UserId;
@@ -301,7 +304,7 @@ namespace ShopManagementAPI.Services
                     );
                 }
             }
-        }
+        }*/
 
 
 

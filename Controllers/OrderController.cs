@@ -1,12 +1,12 @@
-﻿using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
-using ShopManagementAPI.Models;
+﻿using ShopManagementAPI.Models;
 using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using ShopManagementAPI.DTOs.request.Order;
+using ShopManagementAPI.DTOs.response.Order;
 
 namespace ShopManagementAPIControllers
 {
@@ -40,9 +40,10 @@ namespace ShopManagementAPIControllers
         [Authorize]
         [RequirePermission(Permissions.GetOrders)]
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<OrderResponseDTO>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<PagedResponseDTO<OrderResponseDTO>>>> GetAll(
+            [FromQuery] OrderQueryDTO request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(request);
 
             return this.ApiOk(
                 result,
@@ -68,9 +69,10 @@ namespace ShopManagementAPIControllers
         [Authorize]
         [RequirePermission(Permissions.GetMyOrders)]
         [HttpGet("my-orders")]
-        public async Task<ActionResult<ApiResponse<List<OrderResponseDTO>>>> GetMyOrders()
+        public async Task<ActionResult<ApiResponse<PagedResponseDTO<OrderResponseDTO>>>> GetMyOrders(
+            [FromQuery] OrderQueryDTO request)
         {
-            var result = await _service.GetMyOrdersAsync();
+            var result = await _service.GetMyOrdersAsync(request);
 
             return this.ApiOk(
                 result,

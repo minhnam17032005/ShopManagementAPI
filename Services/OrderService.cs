@@ -1,11 +1,13 @@
 ﻿using ShopManagementAPI.DTOs;
-using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
 using ShopManagementAPI.Jwt;
 using ShopManagementAPI.Exceptions;
 using ShopManagementAPI.Models;
 using ShopManagementAPI.Models.Enum;
 using ShopManagementAPI.Repositories;
+using Microsoft.EntityFrameworkCore;
+using ShopManagementAPI.DTOs.Common;
+using ShopManagementAPI.DTOs.request.Order;
+using ShopManagementAPI.DTOs.response.Order;
 
 namespace ShopManagementAPI.Services
 {
@@ -197,11 +199,93 @@ namespace ShopManagementAPI.Services
             }
         }
 
-        public async Task<List<OrderResponseDTO>> GetAllAsync()
+        public async Task<PagedResponseDTO<OrderResponseDTO>> GetAllAsync(
+    OrderQueryDTO request)
         {
-            var orders = await _repoOrder.GetAllAsync();
+            var query = _repoOrder.Query();
 
-            return orders.Select(MapToDTO).ToList();
+            // SEARCH
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                query = query.Where(x =>
+                    x.ReceiverName.Contains(request.Keyword)
+                    || x.PhoneNumber.Contains(request.Keyword)
+                    || x.ShippingAddress.Contains(request.Keyword));
+            }
+
+            // FILTER
+            if (request.UserId.HasValue)
+            {
+                query = query.Where(x =>
+                    x.UserId == request.UserId.Value);
+            }
+
+            if (request.Status.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Status == request.Status.Value);
+            }
+
+            if (request.FromDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.CreatedAt >= request.FromDate.Value);
+            }
+
+            if (request.ToDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.CreatedAt <= request.ToDate.Value);
+            }
+
+            if (request.MinTotalAmount.HasValue)
+            {
+                query = query.Where(x =>
+                    x.TotalAmount >= request.MinTotalAmount.Value);
+            }
+
+            if (request.MaxTotalAmount.HasValue)
+            {
+                query = query.Where(x =>
+                    x.TotalAmount <= request.MaxTotalAmount.Value);
+            }
+
+            // SORT
+            query = request.SortBy.ToLower() switch
+            {
+                "totalamount" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.TotalAmount)
+                    : query.OrderBy(x => x.TotalAmount),
+
+                "createdat" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.CreatedAt)
+                    : query.OrderBy(x => x.CreatedAt),
+
+                _ => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Id)
+            };
+
+
+            var totalCount = await query.CountAsync();
+
+            // Paging
+            var orders = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PagedResponseDTO<OrderResponseDTO>
+            {
+                Items = orders
+                    .Select(MapToDTO)
+                    .ToList(),
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(
+                    totalCount / (double)request.PageSize)
+            };
         }
 
         public async Task<OrderResponseDTO> GetByIdAsync(int id)
@@ -213,16 +297,77 @@ namespace ShopManagementAPI.Services
 
             return MapToDTO(order);
         }
-        public async Task<List<OrderResponseDTO>> GetMyOrdersAsync()
+        public async Task<PagedResponseDTO<OrderResponseDTO>> GetMyOrdersAsync(
+        OrderQueryDTO request)
         {
             var userId = _currentUser.UserId;
 
-            var orders = await _repoOrder
-                .GetByUserIdAsync(userId);
+            var query = _repoOrder.Query();
 
-            return orders
-                .Select(MapToDTO)
-                .ToList();
+            // Chỉ lấy đơn của user hiện tại
+            query = query.Where(x =>x.UserId == userId);
+
+            // Search
+            if (!string.IsNullOrWhiteSpace(request.Keyword))
+            {
+                query = query.Where(x =>
+                    x.ReceiverName.Contains(request.Keyword)
+                    || x.PhoneNumber.Contains(request.Keyword));
+            }
+
+            // Filter
+            if (request.Status.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Status == request.Status.Value);
+            }
+
+            if (request.FromDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.CreatedAt >= request.FromDate.Value);
+            }
+
+            if (request.ToDate.HasValue)
+            {
+                query = query.Where(x =>
+                    x.CreatedAt <= request.ToDate.Value);
+            }
+
+            // Sort
+            query = request.SortBy.ToLower() switch
+            {
+                "totalamount" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.TotalAmount)
+                    : query.OrderBy(x => x.TotalAmount),
+
+                "createdat" => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.CreatedAt)
+                    : query.OrderBy(x => x.CreatedAt),
+
+                _ => request.SortDirection == "desc"
+                    ? query.OrderByDescending(x => x.Id)
+                    : query.OrderBy(x => x.Id)
+            };
+
+            var totalCount = await query.CountAsync();
+
+            var orders = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PagedResponseDTO<OrderResponseDTO>
+            {
+                Items = orders
+                    .Select(MapToDTO)
+                    .ToList(),
+                Page = request.Page,
+                PageSize = request.PageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(
+                    totalCount / (double)request.PageSize)
+            };
         }
 
         public async Task<OrderResponseDTO> GetMyOrderByIdAsync(int id)

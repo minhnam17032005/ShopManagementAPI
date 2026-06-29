@@ -1,11 +1,11 @@
-﻿using ShopManagementAPI.DTOs.request;
-using ShopManagementAPI.DTOs.response;
-using ShopManagementAPI.Services;
+﻿using ShopManagementAPI.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ShopManagementAPI.Authorization;
 using ShopManagementAPI.DTOs.Common;
 using ShopManagementAPI.Extensions;
+using ShopManagementAPI.DTOs.request.Permission;
+using ShopManagementAPI.DTOs.response.Permission;
 
 namespace ShopManagementAPI.Controllers
 {
@@ -24,9 +24,10 @@ namespace ShopManagementAPI.Controllers
         [Authorize]
         [RequirePermission(Permissions.GetPermissions)]
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<List<PermissionResponseDTO>>>> GetAll()
+        public async Task<ActionResult<ApiResponse<PagedResponseDTO<PermissionResponseDTO>>>> GetAll(
+    [FromQuery] PermissionQueryDTO request)
         {
-            var result = await _service.GetAllAsync();
+            var result = await _service.GetAllAsync(request);
 
             return this.ApiOk(
                 result,
